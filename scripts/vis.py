@@ -6,6 +6,7 @@ import numpy as np
 def image(hduls, cat=None, color='green', size=40):
     d = DS9()
     d.set("scale mode zscale")
+    print("asdf")
 
     if cat == None:
         for hdul in hduls:
@@ -13,12 +14,15 @@ def image(hduls, cat=None, color='green', size=40):
             d.set_pyfits(hdul)
             d.set("zoom to fit")
     else:
-        for hdul in hduls:
+        print(len(cat))
+        print(len(hduls))
+        for c, hdul in zip(cat, hduls):
+            print("stuff!")
             d.set("frame new")
             d.set_pyfits(hdul)
             d.set("zoom to fit")
-            coords = np.load(cat)
-            for coord in coords:
+            # coords = np.load(cat)
+            for coord in c:
                 d.set('regions command {{circle {} {} {} #color={}}}'.format(coord[0], coord[1], size, color))
     d.set("frame first")
     d.set("frame delete")
