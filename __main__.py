@@ -19,7 +19,7 @@ print("Finished combine")
 residuals = subtract(aligned, template)
 print("Finished subtract")
 
-im_sources = extract(residuals)
+im_sources = extract([r[0] for r in residuals])
 
 pickle.dump(im_sources, open("transient_candidates.pkl","wb"))
 
