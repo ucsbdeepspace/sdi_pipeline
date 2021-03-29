@@ -1,5 +1,5 @@
 import numpy as np
-from sklearn.cluster import dbscan
+from sklearn.cluster import dbscan, OPTICS
 from astropy.io import fits
 from astropy.wcs import WCS
 from astropy.coordinates import Angle
@@ -12,6 +12,8 @@ from astropy import wcs
 from sdi.sources.reference import reference
 import pyvo as vo
 from scipy.optimize import curve_fit
+import sys
+
 def record(image, path, secid, residual_data, temp, db_session=None):
 	"""
 	only works with lco shit for now
@@ -80,15 +82,44 @@ def _norm(array):
 	array *= 1/max(array)
 	return array
 
-def cluster(db_session=None):
+def flux_sort(source):
+	return source[3]
+
+def cluster(db_session=None, algorithm='dbscan', eps=0.001, minpts=4, max_eps=np.inf, xi=0.8, min_flux=0, max_flux=sys.maxsize):
+	"""
+	Clusters sources using either dbscan or OPTICS from a sqlalchemy session before committing them as records.
+	dbscan takes eps and minpts as parameters. OPTICS takes max_eps, minpts, and xi as parameters.
+	"""
 	session = db_session
 	if session is None:
 		session = db.create_session()
-	irdf = np.array(session.query(db.Source.id,db.Source.ra,db.Source.dec,db.Source.flux).all()).T
+	irdf = session.query(db.Source.id,db.Source.ra,db.Source.dec,db.Source.flux).all()
+	irdf.sort(key=flux_sort)
+
+	# Choose source cutoff based on min/max flux
+	min_index = 0
+	max_index = len(irdf)
+	for i in range(0, len(irdf)):
+		if irdf[i][3] > min_flux:
+			min_index = i
+			break
+	for i in range(0, len(irdf)):
+		if irdf[-i-1][3] < max_flux:
+			max_index = len(irdf)-i
+			break
+	irdf = np.array(irdf).T
+
 	# do the norming with numpy
-	irdf = np.vstack((irdf[0],_norm(irdf[1]), _norm(irdf[2]), _norm(irdf[3])))
-	cores, labels = dbscan((irdf[1:]).T, 0.001, 4)
-	labels += 1 # no -1 label
+	irdf = np.vstack((irdf[0][min_index:max_index],_norm(irdf[1])[min_index:max_index], _norm(irdf[2])[min_index:max_index], _norm(irdf[3])[min_index:max_index]))
+	if algorithm == 'dbscan':
+		cores, labels = dbscan((irdf[1:]).T, eps, minpts)
+	else:
+		labels = OPTICS(min_pts, max_eps, xi=xi).fit(irdf[1:].T).labels_
+	records = session.query(db.Record).count()
+	if records == 0:
+		labels += 1 # no -1 label
+	else:
+		labels += records # Used when running dbscan more than once
 	print(irdf[0].shape)
 	print(labels.shape)
 	for id_, ell in zip(irdf[0], labels):
@@ -112,6 +143,7 @@ def cluster(db_session=None):
 		elem.dec_avg = sum_dec/len(sources)
 		elem.flux_avg = sum_flux/len(sources)
 	session.commit()
+
 def normalize(x, a, b):
 	return a*np.log(x) + b
 
