@@ -7,7 +7,7 @@ Welcome to SDI Pipeline's documentation!
 ======================================================
 
 .. automodule:: sdi_pipeline.align
-        :members: align, __init__, ref_image, saturation
+        :members: __init__, align, ref_image, saturation
 
 .. automodule:: sdi_pipeline.combine
         :members: combine, __init__
@@ -18,7 +18,7 @@ Welcome to SDI Pipeline's documentation!
 .. automodule:: sdi_pipeline.config
         :members: __init__
 
-.. automodule:: sdi_pipeline.__init__
+.. automodule::  sdi_pipeline.__init__
         :members:
 
 .. automodule:: sdi_pipeline.__main__
@@ -34,7 +34,7 @@ Welcome to SDI Pipeline's documentation!
         :members: sim, simulation
 
 .. automodule:: sdi_pipeline.sources
-        :members: collate, extract, __init__, reference, source
+        :members: collate, extract, __init__, record, source, reference, test
 
 .. automodule:: sdi_pipeline.subtract
         :members: __init__, subtract
@@ -44,6 +44,18 @@ Welcome to SDI Pipeline's documentation!
 
 .. automodule:: sdi_pipeline.vis
         :members:
+
+.. automodule:: sdi_pipeline.dbs
+        :members: alembic, alembic.ini, v1, v2     
+
+.. automodule:: sdi_pipeline.scripts
+        :members: compare, conversion, vis
+
+.. automodule:: sdi_pipeline.search1
+        :members:     
+
+.. automodule:: sdi_pipeline.search
+        :members:          
 
 .. toctree::
    :maxdepth: 2

@@ -1,6 +1,7 @@
 import numpy as np
 from sklearn.cluster import dbscan
 from astropy.io import fits
+from astropy.wcs import WCS
 from astropy.coordinates import Angle
 import re
 from datetime import datetime
@@ -113,3 +114,4 @@ def cluster(db_session=None):
 	session.commit()
 def normalize(x, a, b):
 	return a*np.log(x) + b
+

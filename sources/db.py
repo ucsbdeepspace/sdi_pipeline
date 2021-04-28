@@ -158,6 +158,8 @@ class Image(Base):
     path = Column(Text(255), unique=True)
     time = Column(DateTime, unique=True)
     ra = Column(Float)
+    ra_max = Column(Float)
+    ra_min = Column(Float)
     dec = Column(Float)
     coeff_a = Column(Float)
     coeff_b = Column(Float)

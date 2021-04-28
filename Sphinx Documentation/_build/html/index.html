@@ -32,15 +32,14 @@
             
   <div class="section" id="module-sdi_pipeline.align">
 <span id="welcome-to-sdi-pipeline-s-documentation"></span><h1>Welcome to SDI Pipeline’s documentation!<a class="headerlink" href="#module-sdi_pipeline.align" title="Permalink to this headline">¶</a></h1>
-<p>__init__.py align</p>
 <p>align contains methods to align astronomical data to the same orientation based
-on a reference image</p>
-<dl class="simple">
-<dt>METHODS</dt><dd><p>align – performs image registration
+on a reference image
+METHODS</p>
+<blockquote>
+<div><p>align – performs image registration
 saturation – determines the saturation level of images
 ref_image – chooses the best image to use as a reference from a set of ims</p>
-</dd>
-</dl>
+</div></blockquote>
 <dl class="function">
 <dt id="sdi_pipeline.align.ref_image">
 <code class="sig-prename descclassname">sdi_pipeline.align.</code><code class="sig-name descname">ref_image</code><span class="sig-paren">(</span><em class="sig-param">fits_list</em><span class="sig-paren">)</span><a class="headerlink" href="#sdi_pipeline.align.ref_image" title="Permalink to this definition">¶</a></dt>
@@ -85,12 +84,11 @@ ARGUMENTS</p>
 </dl>
 </dd></dl>
 
-<span class="target" id="module-sdi_pipeline.common"></span><p>__init__.py</p>
-<p>Common functionality used throughout the pipeline</p>
-<dl class="simple">
-<dt>Methods</dt><dd><p>to_np – converts fitsfiles/arrays to numpy arrays</p>
-</dd>
-</dl>
+<span class="target" id="module-sdi_pipeline.common"></span><p>Common functionality used throughout the pipeline
+Methods</p>
+<blockquote>
+<div><p>to_np – converts fitsfiles/arrays to numpy arrays</p>
+</div></blockquote>
 <dl class="function">
 <dt id="sdi_pipeline.common.to_np">
 <code class="sig-prename descclassname">sdi_pipeline.common.</code><code class="sig-name descname">to_np</code><span class="sig-paren">(</span><em class="sig-param">np_or_hdu</em>, <em class="sig-param">err_msg='Cannot process unexpected type {}'</em><span class="sig-paren">)</span><a class="headerlink" href="#sdi_pipeline.common.to_np" title="Permalink to this definition">¶</a></dt>
@@ -111,27 +109,26 @@ default – ‘Cannot process unexpected type {}’</p>
 </dl>
 </dd></dl>
 
-<span class="target" id="module-sdi_pipeline.config"></span><p>_init_.py</p>
-<p>Config manages and reads configuration files for the pipeline as well as
-Sextractor and PSFextractor</p>
-<dl class="simple">
-<dt>History:</dt><dd><dl class="simple">
+<span class="target" id="module-sdi_pipeline.config"></span><p>Config manages and reads configuration files for the pipeline as well as
+Sextractor and PSFextractor
+History:</p>
+<blockquote>
+<div><dl class="simple">
 <dt>Created 2019-09-05</dt><dd><p>Varun Iyer &lt;<a class="reference external" href="mailto:varun_iyer&#37;&#52;&#48;ucsb&#46;edu">varun_iyer<span>&#64;</span>ucsb<span>&#46;</span>edu</a>&gt;</p>
 </dd>
 </dl>
-</dd>
-</dl>
-<p>Methods:</p>
-<dl>
-<dt>Values:</dt><dd><dl class="simple">
+</div></blockquote>
+<p>Methods:
+Values:</p>
+<blockquote>
+<div><dl class="simple">
 <dt>PSFEX_PARAMS – location of the default parameter file for source extraction</dt><dd><p>for psf</p>
 </dd>
 </dl>
 <p>DEFAULT_CONV – locaiton of the default convolution file
 TMPDIR – location of a directory to rw temp files</p>
-</dd>
-</dl>
-<span class="target" id="module-sdi_pipeline.__init__"></span><span class="target" id="module-sdi_pipeline.post"></span><span class="target" id="module-sdi_pipeline.__pycache__"></span><span class="target" id="module-sdi_pipeline.sim"></span><span class="target" id="module-sdi_pipeline.sources"></span><dl class="function">
+</div></blockquote>
+<span class="target" id="module-sdi_pipeline.__init__"></span><span class="target" id="module-sdi_pipeline.__main__"></span><span class="target" id="module-sdi_pipeline.post"></span><span class="target" id="module-sdi_pipeline.__pycache__"></span><span class="target" id="module-sdi_pipeline.sim"></span><span class="target" id="module-sdi_pipeline.sources"></span><dl class="function">
 <dt id="sdi_pipeline.sources.collate">
 <code class="sig-prename descclassname">sdi_pipeline.sources.</code><code class="sig-name descname">collate</code><span class="sig-paren">(</span><em class="sig-param">sources</em>, <em class="sig-param">thresh=2</em><span class="sig-paren">)</span><a class="headerlink" href="#sdi_pipeline.sources.collate" title="Permalink to this definition">¶</a></dt>
 <dd><p>Correlate takes a list of sources and images and attempts to combine like
@@ -166,52 +163,52 @@ sources
 
 <dl class="function">
 <dt id="sdi_pipeline.sources.reference">
-<code class="sig-prename descclassname">sdi_pipeline.sources.</code><code class="sig-name descname">reference</code><span class="sig-paren">(</span><em class="sig-param">catalogs</em>, <em class="sig-param">thresh=0.001</em><span class="sig-paren">)</span><a class="headerlink" href="#sdi_pipeline.sources.reference" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">sdi_pipeline.sources.</code><code class="sig-name descname">reference</code><span class="sig-paren">(</span><em class="sig-param">source</em>, <em class="sig-param">thresh=0.001</em><span class="sig-paren">)</span><a class="headerlink" href="#sdi_pipeline.sources.reference" title="Permalink to this definition">¶</a></dt>
 <dd><p>Reference searches the database to see if sources in the given catalog(s)
 can be used as known reference stars
-:param catalogs – An HDU BinTable catalog or list of them provided by the LCO:</p>
+:param source – source in cat.data:</p>
 <dl class="field-list simple">
 <dt class="field-odd">Keyword Arguments</dt>
-<dd class="field-odd"><p><strong>-- how tight the search cone should be in degrees</strong><strong>, </strong><strong>001 is</strong> (<em>thresh=0.001</em>) – the number of sigfigs we get from wcs proj. compared to ra/dec</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>-- how tight the search cone should be in degrees</strong><strong>, </strong><strong>001 is</strong> (<em>thresh=0.001</em>) – </p></li>
+<li><p><strong>number of sigfigs we get from wcs proj. compared to ra/dec</strong> (<em>the</em>) – </p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>A list of tuples; each tuple is a catalog and an SCSResults object
 representing possible matches</p>
 </dd>
 </dl>
+<p>cats = []</p>
+<dl class="simple">
+<dt>if isinstance(catalogs, list):</dt><dd><p>cats = catalogs</p>
+</dd>
+<dt>else:</dt><dd><p>cats.append(catalogs)</p>
+</dd>
+</dl>
+<p>matches = []
+for cat in cats:</p>
+<blockquote>
+<div><p>for source in cat.data:
+# FIXME we should run one query and then do our own collisions
+# repeated querying is very, very slow</p>
+</div></blockquote>
 </dd></dl>
 
-<span class="target" id="module-sdi_pipeline.subtract"></span><p>__init__.py subtract</p>
-<p>Contains tools from subtracting astronomical images.</p>
-<dl class="simple">
-<dt>METHODS</dt><dd><p>subtract – subtracts a template from an image or set of images</p>
-</dd>
-</dl>
-<dl class="function">
-<dt id="sdi_pipeline.subtract.subtract">
-<code class="sig-prename descclassname">sdi_pipeline.subtract.</code><code class="sig-name descname">subtract</code><span class="sig-paren">(</span><em class="sig-param">sources</em>, <em class="sig-param">template</em>, <em class="sig-param">method='hotpants'</em><span class="sig-paren">)</span><a class="headerlink" href="#sdi_pipeline.subtract.subtract" title="Permalink to this definition">¶</a></dt>
-<dd><p>Subtract takes the difference of a set of astronomical data from a template
-:param sources – a fits HDU, numpy array, or list of either:
-:param template – a template to subtract from, fits HDU or numpy array:</p>
-<dl class="field-list simple">
-<dt class="field-odd">Keyword Arguments</dt>
-<dd class="field-odd"><p><strong>-- the subtraction algorithm to use; currently only 'hotpants' is</strong> (<em>method</em>) – implemented and it is the default</p>
-</dd>
-</dl>
-</dd></dl>
-
-<span class="target" id="module-sdi_pipeline.tools"></span><span class="target" id="module-sdi_pipeline.vis"></span><p>vis.py</p>
-<p>light_curves finds the intensity of a list of sources over time</p>
-<dl class="simple">
-<dt>History:</dt><dd><dl class="simple">
-<dt>Created on 2019-09-06</dt><dd><p>Varun Iyer &lt;<a class="reference external" href="mailto:varun_iyer&#37;&#52;&#48;ucsb&#46;edu">varun_iyer<span>&#64;</span>ucsb<span>&#46;</span>edu</a>&gt;</p>
-</dd>
-</dl>
-</dd>
-</dl>
+<span class="target" id="module-sdi_pipeline.subtract"></span><p>Contains tools from subtracting astronomical images.
+METHODS</p>
+<blockquote>
+<div><p>subtract – subtracts a template from an image or set of images</p>
+</div></blockquote>
+<span class="target" id="module-sdi_pipeline.tools"></span><span class="target" id="module-sdi_pipeline.vis"></span><p>light_curves finds the intensity of a list of sources over time
+History:</p>
+<blockquote>
+<div><p>Created on 2019-09-06</p>
+</div></blockquote>
+<p>e       Varun Iyer &lt;<a class="reference external" href="mailto:varun_iyer&#37;&#52;&#48;ucsb&#46;edu">varun_iyer<span>&#64;</span>ucsb<span>&#46;</span>edu</a>&gt;</p>
 <dl class="function">
 <dt id="sdi_pipeline.vis.curves">
-<code class="sig-prename descclassname">sdi_pipeline.vis.</code><code class="sig-name descname">curves</code><span class="sig-paren">(</span><em class="sig-param">sources</em>, <em class="sig-param">images</em>, <em class="sig-param">num=20</em>, <em class="sig-param">detected=[]</em>, <em class="sig-param">fname=''</em>, <em class="sig-param">show=False</em><span class="sig-paren">)</span><a class="headerlink" href="#sdi_pipeline.vis.curves" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">sdi_pipeline.vis.</code><code class="sig-name descname">curves</code><span class="sig-paren">(</span><em class="sig-param">record_s</em><span class="sig-paren">)</span><a class="headerlink" href="#sdi_pipeline.vis.curves" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generate a plot of light curves for each source
 :param sources – list of catalog file HDUs:
 :param images – list of science images:</p>
@@ -227,7 +224,7 @@ representing possible matches</p>
 </dl>
 </dd></dl>
 
-<div class="toctree-wrapper compound">
+<span class="target" id="module-sdi_pipeline.dbs"></span><span class="target" id="module-sdi_pipeline.scripts"></span><div class="toctree-wrapper compound">
 </div>
 </div>
 <div class="section" id="indices-and-tables">
