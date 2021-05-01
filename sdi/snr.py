@@ -1,7 +1,7 @@
 """
 Standalone version without click implementation
 Code originally by Yael Brynjegard-Bialik 2020-2021
-Updated to return modified hduls instead of best SNR hdul by Tyler Pruitt May 1, 2021
+Updated to return modified hduls instead of best SNR hdul by Tyler Pruitt 05-01-2021
 """
 
 
@@ -61,4 +61,5 @@ def snr(hduls, name="SCI"):
         
         # write SNR value to the FITS header
    		hdul[name].header.append(('SNR', SNR, 'signal to noise ratio'))
-    return hduls
+    
+    return (hdul for hdul in hduls)

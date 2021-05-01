@@ -12,7 +12,7 @@ import numpy as np
 from astropy.io.fits import PrimaryHDU, HDUList
 #from sources import Source
 import astroalign
-from _scripts import snr
+from sdi import snr
 
 def align(hduls, name="SCI", reference=None):
     """ 
