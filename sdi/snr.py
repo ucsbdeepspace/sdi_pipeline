@@ -49,7 +49,8 @@ def snr(hduls, name="SCI"):
    
    		SourceCatalog = source_properties(new_data, SegmentationImage)
    		columns = ['id', 'xcentroid', 'ycentroid', 'source_sum']
-   
+        
+        #calculate mean max values of source
    		source_max_values = SourceCatalog.max_value
    		avg_source_max_values = np.mean(source_max_values)
    
