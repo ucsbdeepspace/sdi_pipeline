@@ -1,7 +1,7 @@
 """
 Standalone version without click implementation
 Code originally by Yael Brynjegard-Bialik 2020-2021
-Updated to return modified hduls instead of best SNR hdul by Tyler Pruitt 05-01-2021
+Updated to return modified hduls instead of best SNR hdul by Tyler Pruitt 05-03-2021
 """
 
 
@@ -32,34 +32,36 @@ def snr(hduls, name="SCI"):
     """
     
     for hdul in hduls:
-   		data = hdul[name].data
-   		shape = data.shape
-   		
+        data = hdul[name].data
+        shape = data.shape
+        
         # identify background rms
-   		boxsize=(shape)
-   		bkg = Background2D(data, boxsize)
-   		bkg_mean_rms = np.mean(bkg.background_rms)
-   
-   		# subtract bkg from image
-   		new_data = data - bkg.background
-   
-   		# set threshold and detect sources, threshold 5*std above background
-   		threshold = detect_threshold(data=new_data, nsigma=5.0, background=0.0)
-   		SegmentationImage = detect_sources(data=new_data, threshold=threshold, npixels=10)
-   
-   		SourceCatalog = source_properties(new_data, SegmentationImage)
-   		columns = ['id', 'xcentroid', 'ycentroid', 'source_sum']
+        boxsize=(shape)
+        bkg = Background2D(data, boxsize)
+        bkg_mean_rms = np.mean(bkg.background_rms)
+        
+        # subtract bkg from image
+        new_data = data - bkg.background
+        
+        # set threshold and detect sources, threshold 5*std above background
+        threshold = detect_threshold(data=new_data, nsigma=5.0, background=0.0)
+        SegmentationImage = detect_sources(data=new_data, threshold=threshold, npixels=10)
+        
+        SourceCatalog = source_properties(new_data, SegmentationImage)
+        columns = ['id', 'xcentroid', 'ycentroid', 'source_sum']
         
         #calculate mean max values of source
-   		source_max_values = SourceCatalog.max_value
-   		avg_source_max_values = np.mean(source_max_values)
-   
-   		# calculate signal to noise ratio
-   		signal = avg_source_max_values
-   		noise = bkg_mean_rms
-   		SNR = (signal)/(noise)
+        source_max_values = SourceCatalog.max_value
+        avg_source_max_values = np.mean(source_max_values)
+        
+        # calculate signal to noise ratio
+        signal = avg_source_max_values
+        noise = bkg_mean_rms
+        SNR = (signal)/(noise)
         
         # write SNR value to the FITS header
-   		hdul[name].header.append(('SNR', SNR, 'signal to noise ratio'))
+        hdul[name].header.append(('SNR', SNR, 'signal to noise ratio'))
+        
+        yield hdul
     
-    return (hdul for hdul in hduls)
+    #return (hdul for hdul in hduls)
