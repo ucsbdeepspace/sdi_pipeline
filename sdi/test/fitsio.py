@@ -40,11 +40,10 @@ class TestWrite(unittest.TestCase):
 
     def setUp(self):
         ## Creates a unique dir to write to
-        testDir = getpass.getuser() + datetime.now().strftime("%H%M%S")
+        self.testDir = getpass.getuser() + datetime.now().strftime("%H%M%S")
         self.tmpdir = tempfile.TemporaryDirectory()
-        self.dirName = os.path.join(self.tmpdir.name, testDir)
+        self.dirName = os.path.join(self.tmpdir.name, self.testDir)
         os.mkdir(self.dirName)
-
         self.h = sdi.read(os.path.join(os.path.dirname(__file__), "fixtures/science"))
         self.output = sdi.write(self.h, os.path.join(os.path.dirname(__file__), self.dirName), "{number}.fits")
         self.paths = glob.glob("{}/*.fits*".format(os.path.join(os.path.dirname(__file__), self.dirName)))
@@ -59,7 +58,7 @@ class TestWrite(unittest.TestCase):
             self.assertIsInstance(o, fits.HDUList, "Did not write type fits.HDUList")
 
     def test_dir(self):
-        self.assertEqual(len(self.paths), 10,f"Did not write ten HDULs to directory {self.dirName}")
+        self.assertEqual(len(self.paths), 10,f"Did not write ten HDULs to directory {self.paths}")
     
 
 if __name__ == "__main__":

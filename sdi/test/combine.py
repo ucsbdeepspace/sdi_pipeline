@@ -9,25 +9,27 @@ class TestCombine(unittest.TestCase):
 
     path = os.path.join(os.path.dirname(__file__), "fixtures/science")
 
-    def setUp(self):
-        self.read = [s for s in sdi.read(TestCombine.path)]
-        self.output = sdi.combine(self.read)
+    @classmethod
+    def setUpClass(cls):
+        cls.read = [s for s in sdi.read(cls.path)]
+        cls.output = sdi.combine(cls.read)
 
-    def tearDown(self):
-        for hdul in self.read:
+    @classmethod
+    def tearDownClass(cls):
+        for hdul in cls.read:
             hdul.close()
 
     def test_length(self):
-        self.assertEqual(len(self.output), 1, "Did not combine HDULs into one PrimaryHDU")
+        self.assertEqual(len(TestCombine.output), 1, "Combine did not return one PrimaryHDU")
 
     def test_type(self):
-        self.assertIsInstance(self.output[0], fits.PrimaryHDU, "Output is not of type PrimaryHDU")
-
+        self.assertIsInstance(TestCombine.output[0], fits.PrimaryHDU, "Output is not of type PrimaryHDU")
+ 
     def test_tk(self):
         runner = CliRunner()
         result = runner.invoke(sdi._read_cmd)
         # FIXME figure out how to do click right
-
+        
 if __name__ == "__main__":
     unittest.main()
 
