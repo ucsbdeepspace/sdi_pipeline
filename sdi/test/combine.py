@@ -24,6 +24,12 @@ class TestCombine(unittest.TestCase):
 
     def test_type(self):
         self.assertIsInstance(TestCombine.output[0], fits.PrimaryHDU, "Output is not of type PrimaryHDU")
+
+    def test_output(self):
+        #realOutput = [s for s in sdi.read(os.path.join(os.path.dirname(__file__), "fixtures/combineData"))]
+        self.trueOutput = os.path.join(os.path.dirname(__file__), "fixtures/combineData/0.fits")
+        self.compare = fits.FITSDiff(TestCombine.output, self.trueOutput)
+        self.assertEqual(self.compare.identical, True, self.compare.report(fileobj = None))
  
     def test_tk(self):
         runner = CliRunner()
