@@ -1,6 +1,9 @@
+"""
+cli -- this module chains together pipeline commands
+"""
+
 from functools import update_wrapper
 import click
-from inspect import signature, _empty
 
 @click.group(chain=True)
 def cli():

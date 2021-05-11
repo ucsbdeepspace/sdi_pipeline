@@ -1,7 +1,10 @@
-from . import _cli as cli
+"""
+display -- this module displays astronomical image(s)
+"""
+
 import click
 from pyds9 import DS9
-import numpy as np
+from . import _cli as cli
 
 def display(hduls, cats=None, color='green', size=40):
     """
@@ -34,7 +37,7 @@ def display(hduls, cats=None, color='green', size=40):
 
     ds9.set("frame first")
     ds9.set("frame delete")
-    
+
     return (hdul for hdul in hduls)
 
 @cli.cli.command("display")
