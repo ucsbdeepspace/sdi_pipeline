@@ -1,3 +1,8 @@
+"""
+Author: Benjamin Fogiel - bfogiel@ucsb.edu
+Tests the output of the combine function
+"""
+
 import os
 import unittest
 import click
@@ -26,7 +31,6 @@ class TestCombine(unittest.TestCase):
         self.assertIsInstance(TestCombine.output[0], fits.PrimaryHDU, "Output is not of type PrimaryHDU")
 
     def test_output(self):
-        #realOutput = [s for s in sdi.read(os.path.join(os.path.dirname(__file__), "fixtures/combineData"))]
         self.trueOutput = os.path.join(os.path.dirname(__file__), "fixtures/combineData/0.fits")
         self.compare = fits.FITSDiff(TestCombine.output, self.trueOutput)
         self.assertEqual(self.compare.identical, True, self.compare.report(fileobj = None))
