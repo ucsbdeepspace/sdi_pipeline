@@ -20,6 +20,9 @@ class TestSubtract(unittest.TestCase):
         cls.read = [fits.open(p) for p in cls.path]
         cls.output = sdi.subtract(cls.read)
 
+        # converts generator to list, not sure if this is good practice
+        cls.hdul_output = list(cls.output)
+
     @classmethod
     def tearDownClass(cls):
         for o in cls.output:
@@ -30,13 +33,7 @@ class TestSubtract(unittest.TestCase):
             self.assertIsInstance(o, fits.HDUList, "Did not output type fits.HDUList")
 
     def test_length(self):
-        n = 0
-        try:
-            while True:
-                next(TestSubtract.output)
-                n += 1
-        except StopIteration: pass
-        self.assertEqual(n, 2042, "Did not yield 2042 subtractions")
+        self.assertEqual(len(TestSubtract.hdul_output), 2042, "Did not yield 2042 subtractions")
 
     def test_output(self):
         # sorts the known true output to be congruent with the current output
@@ -45,7 +42,7 @@ class TestSubtract(unittest.TestCase):
 
         # compares the knwon true output to current output
         self.true_output = []
-        for p, o in zip(self.paths, TestSubtract.output):
+        for p, o in zip(self.paths, TestSubtract.hdul_output):
             self.true_output = fits.open(p)
             compare = fits.FITSDiff(self.true_output, o)
             self.assertEqual(compare.identical, True , compare.report(fileobj = None))
