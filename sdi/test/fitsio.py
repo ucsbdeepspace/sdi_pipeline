@@ -1,3 +1,9 @@
+"""
+Author: Benjamin Fogiel - bfogiel@ucsb.edu
+Tests the read and write functions
+"""
+
+
 import os
 import unittest
 import click
