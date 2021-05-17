@@ -18,10 +18,7 @@ class TestSubtract(unittest.TestCase):
         # uses one fits file as subtract param to decrease runtime
         cls.path = glob.glob(os.path.join(os.path.dirname(__file__), "fixtures/science/tfn0m414-kb99-20180831-0290-e91.fits.fz"))
         cls.read = [fits.open(p) for p in cls.path]
-        cls.output = sdi.subtract(cls.read)
-
-        # converts generator to list, not sure if this is good practice
-        cls.hdul_output = list(cls.output)
+        cls.output = list(sdi.subtract(cls.read))
 
     @classmethod
     def tearDownClass(cls):
@@ -33,16 +30,16 @@ class TestSubtract(unittest.TestCase):
             self.assertIsInstance(o, fits.HDUList, "Did not output type fits.HDUList")
 
     def test_length(self):
-        self.assertEqual(len(TestSubtract.hdul_output), 2042, "Did not yield 2042 subtractions")
+        self.assertEqual(len(TestSubtract.output), 2042, "Did not yield 2042 subtractions")
 
     def test_output(self):
         # sorts the known true output to be congruent with the current output
-        self.paths = glob.glob("{}/*.fits*".format(os.path.join(os.path.dirname(__file__), "fixtures/subtractData")))
-        self.paths = sorted(self.paths, key = lambda item: int(item[22:len(item)-5]))
+        self.paths = glob.glob("{}/*.fits*".format(os.path.join(os.path.dirname(__file__), "fixtures/comparitiveData/subtractData")))
+        self.paths = sorted(self.paths, key = lambda item: int(item[38:len(item)-5]))
 
         # compares the knwon true output to current output
         self.true_output = []
-        for p, o in zip(self.paths, TestSubtract.hdul_output):
+        for p, o in zip(self.paths, TestSubtract.output):
             self.true_output = fits.open(p)
             compare = fits.FITSDiff(self.true_output, o)
             self.assertEqual(compare.identical, True , compare.report(fileobj = None))
