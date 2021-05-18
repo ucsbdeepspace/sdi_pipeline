@@ -35,10 +35,15 @@ class TestCombine(unittest.TestCase):
         self.compare = fits.FITSDiff(TestCombine.output, self.trueOutput)
         self.assertEqual(self.compare.identical, True, self.compare.report(fileobj = None))
  
-    def test_tk(self):
+    def test_click(self):
         runner = CliRunner()
-        result = runner.invoke(sdi._read_cmd)
-        # FIXME figure out how to do click right
+        working = True
+        try:
+            runner.invoke(sdi._combine_cmd)
+        except:
+            working = False
+        self.assertEqual(working, True, "Click for combine command not working")
+
         
 if __name__ == "__main__":
     unittest.main()

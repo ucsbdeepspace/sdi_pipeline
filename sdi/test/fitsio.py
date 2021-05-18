@@ -3,10 +3,8 @@ Author: Benjamin Fogiel - bfogiel@ucsb.edu
 Tests the read and write functions
 """
 
-
 import os
 import unittest
-import click
 from click.testing import CliRunner
 from astropy.io import fits
 import sdi
@@ -36,15 +34,19 @@ class TestRead(unittest.TestCase):
         for o in self.output:
             self.assertIsInstance(o, fits.HDUList, "Did not read type fits.HDUList")
 
-    def test_tk(self):
+    def test_click(self):
         runner = CliRunner()
-        result = runner.invoke(sdi._read_cmd)
-        # FIXME figure out how to do click right
+        working = True
+        try:
+            runner.invoke(sdi._read_cmd)
+        except:
+            working = False
+        self.assertEqual(working, True, "Click for read command not working")
 
 class TestWrite(unittest.TestCase):
 
-
-    def setUp(self):
+    @classmethod
+    def setUpClass(self):
         ## Creates a unique dir to write to
         self.testDir = getpass.getuser() + datetime.now().strftime("%H%M%S")
         self.tmpdir = tempfile.TemporaryDirectory()
@@ -54,7 +56,8 @@ class TestWrite(unittest.TestCase):
         self.output = sdi.write(self.h, os.path.join(os.path.dirname(__file__), self.dirName), "{number}.fits")
         self.paths = glob.glob("{}/*.fits*".format(os.path.join(os.path.dirname(__file__), self.dirName)))
 
-    def tearDown(self):
+    @classmethod
+    def tearDownClass(self):
         for hdul in self.h:
             hdul.close(hdul)
         self.tmpdir.cleanup()
@@ -65,7 +68,15 @@ class TestWrite(unittest.TestCase):
 
     def test_dir(self):
         self.assertEqual(len(self.paths), 10,f"Did not write ten HDULs to directory {self.paths}")
-    
+
+    def test_click(self):
+        runner = CliRunner()
+        working = True
+        try:
+            runner.invoke(sdi._write_cmd)
+        except:
+            working = False
+        self.assertEqual(working, True, "Click for write command not working")
 
 if __name__ == "__main__":
     unittest.main()

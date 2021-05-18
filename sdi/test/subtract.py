@@ -45,6 +45,15 @@ class TestSubtract(unittest.TestCase):
             self.assertEqual(compare.identical, True , compare.report(fileobj = None))
             self.true_output.close()
 
+    def test_click(self):
+        runner = CliRunner()
+        working = True
+        try:
+            runner.invoke(sdi._subtract_cmd)
+        except:
+            working = False
+        self.assertEqual(working, True, "Click for subtract command not working")
+
 
 if __name__ == "__main__":
     unittest.main()

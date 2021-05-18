@@ -43,6 +43,15 @@ class TestExtract(unittest.TestCase):
             compare = fits.FITSDiff(fits.HDUList(t), fits.HDUList(o))
             self.assertEqual(compare.identical, True, compare.report(fileobj = None))
 
+    def test_click(self):
+        runner = CliRunner()
+        working = True
+        try:
+            runner.invoke(sdi._extract_cmd)
+        except:
+            working = False
+        self.assertEqual(working, True, "Click for extract command not working")
+
 if __name__ == "__main__":
     unittest.main()
 

@@ -8,7 +8,6 @@ import unittest
 import click
 from click.testing import CliRunner
 from astropy.io import fits
-import fitsio
 import sdi
 import numpy as np
 from skimage.util.dtype import img_as_float
@@ -47,6 +46,15 @@ class TestAlign(unittest.TestCase):
             t[0].header['SNR'] = np.float32(t[0].header['SNR'])
             compare = fits.FITSDiff(t, o)
             self.assertEqual(compare.identical, True , compare.report(fileobj = None))
+
+    def test_click(self):
+        runner = CliRunner()
+        working = True
+        try:
+            runner.invoke(sdi._align_cmd)
+        except:
+            working = False
+        self.assertEqual(working, True, "Click for align command not working")
 
 
 if __name__ == "__main__":
