@@ -23,8 +23,9 @@ class TestAlign(unittest.TestCase):
         cls.output = list(sdi.align(cls.read))
 
         # sorts the known true output to be congruent with the current output
+        cls.path_len = len(os.path.join(os.path.dirname(__file__), "fixtures/comparitiveData/alignData"))
         cls.paths_true = glob.glob("{}/*.fits*".format(os.path.join(os.path.dirname(__file__), "fixtures/comparitiveData/alignData")))
-        cls.paths_true = sorted(cls.paths_true, key = lambda item: int(item[35:len(item)-5]))
+        cls.paths_true = sorted(cls.paths_true, key = lambda item: int(item[cls.path_len+1:len(item)-5]))
         cls.true_output = [fits.open(p) for p in cls.paths_true]
 
     @classmethod

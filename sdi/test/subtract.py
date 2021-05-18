@@ -34,8 +34,9 @@ class TestSubtract(unittest.TestCase):
 
     def test_output(self):
         # sorts the known true output to be congruent with the current output
+        self.path_len = len(os.path.join(os.path.dirname(__file__), "fixtures/comparitiveData/subtractData"))
         self.paths = glob.glob("{}/*.fits*".format(os.path.join(os.path.dirname(__file__), "fixtures/comparitiveData/subtractData")))
-        self.paths = sorted(self.paths, key = lambda item: int(item[38:len(item)-5]))
+        self.paths = sorted(self.paths, key = lambda item: int(item[self.path_len+1:len(item)-5]))
 
         # compares the knwon true output to current output
         self.true_output = []
