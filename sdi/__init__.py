@@ -5,6 +5,7 @@ from .fitsio import read, write
 from .subtract import subtract
 from .extract import extract
 from .ref import ref
+from .collate import collate
 from . import test
 
 # in order to test click commands
