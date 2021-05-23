@@ -1,11 +1,12 @@
 import click
 from . import _cli as cli
+import sys
 import numpy as np
+import matplotlib.pyplot as plt
 from sklearn.cluster import dbscan, OPTICS
 from astropy.io import fits
 
-
-#Subfunctions used in collate function
+#Subfunctions utilized in clustering function
 def _norm(array):
     array -= min(array)
     array *= 1/max(array)
@@ -18,12 +19,12 @@ def dist_func(a1, a2):
     return tot**0.5
 
 def cluster_func(hduls, name="CAT", tablename="OBJ", coords="radec"):
-    count = len(hduls[0][tablename].data[0])
+    count = len(hduls[0][tablename].data)
     clusters = [[] for i in range(count)]
     for hdul in hduls:
         sources = hdul[name].data
         for i in range(count):
-            index = hdul[tablename].data[0][i]
+            index = hdul[tablename].data[i][0]
             if index != -1:
                 if coords == "radec":
                     clusters[i].append([sources[index]["ra"], sources[index]["dec"], sources[index]["flux"]])
@@ -87,7 +88,7 @@ def collate(hduls, name="CAT", tablename="OBJ", coords = "radec", algorithm="DBS
     else:
         print('Invalid clustering method, please use "DBSCAN" or "OPTICS"')
         return
-  
+   
     obj_count = max(labels)
     for i in range(len(hduls)):
         source_count = len(hduls[i][name].data)
@@ -103,7 +104,7 @@ def collate(hduls, name="CAT", tablename="OBJ", coords = "radec", algorithm="DBS
 
         if len(labels) != source_count:
             labels = labels[source_count:]
-        table = [fits.Column(name='{}'.format(j), format="I", array=np.array([cols[j]]), ascii=True) for j in range(obj_count+1)]
+        table = [fits.Column(name='objects'.format(j), format="I", array=np.array(cols), ascii=True)]
         table = fits.TableHDU.from_columns(table)
         table.name = tablename
         hduls[i].append(table)
@@ -126,8 +127,10 @@ def collate(hduls, name="CAT", tablename="OBJ", coords = "radec", algorithm="DBS
                 s1 = (sources[collision[2]]["x"], sources[collision[2]]["y"], sources[collision[2]]["flux"])
                 s2 = (sources[collision[3]]["x"], sources[collision[3]]["y"], sources[collision[3]]["flux"])
             if dist_func(s1, mean) < dist_func(s2, mean):
-                hduls[collision[0]][tablename].data[str(collision[1])] = np.array([collision[2]])
+                hduls[collision[0]][tablename].data[collision[1]][0] = collision[2]
+
     print("Clustering complete, cluster data stored in '{}' TableHDU".format(tablename))
+
     return (hdul for hdul in hduls)
 
 @cli.cli.command("collate")
@@ -176,13 +179,14 @@ def hdultocluster(hduls, name="CAT", tablename="OBJ"):
     """
     data = [hdul[name].data for hdul in hduls]
     datatype = data[0].dtype
-    clusters = [np.zeros(len(hduls), dtype=datatype) for i in range(len(hduls[0][tablename].data[0]))]
+    clusters = [np.zeros(len(hduls), dtype=datatype) for i in range(len(hduls[0][tablename].data))]
     for i in range(len(hduls)):
-        indexes = hduls[i][tablename].data[0]
+        indexes = hduls[i][tablename].data
         for j in range(len(indexes)):
-            if indexes[j] != -1:
+            index = indexes[j][0]
+            if index != -1:
                 for k in range(len(datatype)):
-                    clusters[j][i][k] = data[i][indexes[j]][k]
+                    clusters[j][i][k] = data[i][index][k]
     return clusters
 
 
