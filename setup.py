@@ -1,4 +1,16 @@
 from setuptools import setup, find_packages
+try:
+    import numpy
+except ModuleNotFoundError:
+    import sys
+    sys.exit("numpy not found, sdi requires numpy for installation.\n Please try '$pip3 install numpy'.")
+
+try:
+    import setuptools_rust
+except ModuleNotFoundError:
+    import sys
+    sys.exit("setuptools_rust not found, sdi requires setuptools_rust for installation.\n Please try '$pip3 install setuptools_rust'.")
+
 
 setup(
     name="sdi-cli",
