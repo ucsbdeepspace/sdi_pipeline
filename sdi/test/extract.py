@@ -46,12 +46,8 @@ class TestExtract(unittest.TestCase):
 
     def test_click(self):
         runner = CliRunner()
-        working = True
-        try:
-            runner.invoke(sdi._extract_cmd)
-        except:
-            working = False
-        self.assertEqual(working, True, "Click for extract command not working")
+        result = runner.invoke(sdi._extract_cmd, ['-t', 3.0, '-r', 0, '-w', 'XRT', 1])
+        assert result.exit_code == 0
 
 if __name__ == "__main__":
     unittest.main()

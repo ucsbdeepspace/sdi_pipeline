@@ -36,12 +36,8 @@ class TestRead(unittest.TestCase):
 
     def test_click(self):
         runner = CliRunner()
-        working = True
-        try:
-            runner.invoke(sdi._read_cmd)
-        except:
-            working = False
-        self.assertEqual(working, True, "Click for read command not working")
+        result = runner.invoke(sdi._read_cmd, ['-d', 'filePath'])
+        assert result.exit_code == 0
 
 class TestWrite(unittest.TestCase):
 
@@ -71,12 +67,8 @@ class TestWrite(unittest.TestCase):
 
     def test_click(self):
         runner = CliRunner()
-        working = True
-        try:
-            runner.invoke(sdi._write_cmd)
-        except:
-            working = False
-        self.assertEqual(working, True, "Click for write command not working")
+        result = runner.invoke(sdi._write_cmd, ['-d', 'filePath', '-f', 'format'])
+        assert result.exit_code == 0
 
 if __name__ == "__main__":
     unittest.main()

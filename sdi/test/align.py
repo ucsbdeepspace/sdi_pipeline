@@ -50,12 +50,8 @@ class TestAlign(unittest.TestCase):
 
     def test_click(self):
         runner = CliRunner()
-        working = True
-        try:
-            runner.invoke(sdi._align_cmd)
-        except:
-            working = False
-        self.assertEqual(working, True, "Click for align command not working")
+        result = runner.invoke(sdi._align_cmd, ['-n', 'name'])
+        assert result.exit_code == 0
 
 
 if __name__ == "__main__":
