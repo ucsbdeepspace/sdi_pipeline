@@ -39,7 +39,7 @@ class TestAlign(unittest.TestCase):
             self.assertIsInstance(o, fits.HDUList, "Did not align type fits.HDUList")
 
     def test_length(self):
-        self.assertEqual(len(TestAlign.output), 2, "Did not align 2 fits files")
+        self.assertEqual(len(TestAlign.output), 2, "Did not align the correct number of fits")
 
     def test_output(self):
         for t, o in zip(TestAlign.true_output, TestAlign.output):

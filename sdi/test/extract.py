@@ -37,7 +37,7 @@ class TestExtract(unittest.TestCase):
             self.assertIsInstance(o, fits.HDUList, "Output is not of type fits.HDUList")
 
     def test_length(self):
-        self.assertEqual(len(TestExtract.output), 10, "Did not extract 10 fits files")
+        self.assertEqual(len(TestExtract.output), 10, "Did not extract the correct number of HDULs from fixtures/residuals")
 
     def test_output(self):
         for t, o in zip(TestExtract.true_output, TestExtract.true_output):

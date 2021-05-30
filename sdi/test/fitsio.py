@@ -27,7 +27,7 @@ class TestRead(unittest.TestCase):
             hdul.close()
 
     def test_length(self):
-        self.assertEqual(len(self.output), 10, "Did not read ten HDULs in directroy, fixtures/science")
+        self.assertEqual(len(self.output), 10, "Did not read the correct number of HDULs in directroy, fixtures/science")
         self.assertEqual(len(self.noutput), 0, "Did not read zero HDULs in from empty directory.")
 
     def test_type(self):
@@ -63,7 +63,7 @@ class TestWrite(unittest.TestCase):
             self.assertIsInstance(o, fits.HDUList, "Did not write type fits.HDUList")
 
     def test_dir(self):
-        self.assertEqual(len(self.paths), 10,f"Did not write ten HDULs to directory {self.paths}")
+        self.assertEqual(len(self.paths), 10,f"Did not write the correct number of HDULs to directory {self.paths}")
 
     def test_click(self):
         runner = CliRunner()
