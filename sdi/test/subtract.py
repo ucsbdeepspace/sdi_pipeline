@@ -33,7 +33,7 @@ class TestSubtract(unittest.TestCase):
         self.assertEqual(len(TestSubtract.output), 1, "Did not output the correct number of HDULs")
 
     def test_output(self):
-        self.true_output = os.path.join(os.path.dirname(__file__), "fixtures/comparitiveData/subtractData/0.fits")
+        self.true_output = os.path.join(os.path.dirname(__file__), "fixtures/comparativeData/subtractData/0.fits")
         for o in TestSubtract.output:
             self.compare = fits.FITSDiff(fits.HDUList(o), self.true_output)
             self.assertEqual(self.compare.identical, True, self.compare.report(fileobj = None))

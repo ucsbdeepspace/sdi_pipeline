@@ -31,7 +31,7 @@ class TestCombine(unittest.TestCase):
         self.assertIsInstance(TestCombine.output[0], fits.PrimaryHDU, "Output is not of type PrimaryHDU")
 
     def test_output(self):
-        self.true_output = os.path.join(os.path.dirname(__file__), "fixtures/comparitiveData/combineData/0.fits")
+        self.true_output = os.path.join(os.path.dirname(__file__), "fixtures/comparativeData/combineData/0.fits")
         self.compare = fits.FITSDiff(TestCombine.output, self.true_output)
         self.assertEqual(self.compare.identical, True, self.compare.report(fileobj = None))
  
