@@ -22,11 +22,10 @@ def subtract(hduls, name="SCI"):
         diff = ois.optimal_system(image=hdu[name].data, refimage=template, method='Bramich')[0]
         output.append(diff)     
 
-    for array_set in output:
+    for item in output:
         # FIXME this is ragingly wrong, multiple items should be associated
-        for item in array_set:
-            hdu = fits.PrimaryHDU(item)
-            outputs.append(fits.HDUList([hdu])) 
+        hdu = fits.PrimaryHDU(item)
+        outputs.append(fits.HDUList([hdu])) 
     return (hdul for hdul in outputs)
 
 @cli.cli.command("subtract")
