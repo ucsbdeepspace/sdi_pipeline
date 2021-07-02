@@ -1,14 +1,13 @@
 """
-Combine merges a set of astronomical data from a template
+combine -- this module merges a set of astronomical data from a template
 History:
     Created/Extensively Refactored 2019-09-05
         Andrew Bluth <abluth@ucsb.edu>
 """
 import click
-from . import _cli as cli
- 
 import numpy as np
 from astropy.io import fits
+from . import _cli as cli
 
 def combine(hduls, name="SCI"):
     """
@@ -25,7 +24,7 @@ def combine(hduls, name="SCI"):
     hduls_list = [hdul for hdul in hduls]
     try:
         data = [hdul[name].data for hdul in hduls_list]
-    except KeyError as ke:
+    except KeyError:
         hduls_list[0].info()
         raise KeyError(str(f"Name {name} not found in HDUList! Try running again with `combine -n [name]` from above")) from None
     comb = np.median(data, axis=0)

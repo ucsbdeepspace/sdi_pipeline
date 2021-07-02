@@ -1,4 +1,7 @@
-import os
+"""
+subtract -- this module returns differences of a set of images from a template image
+"""
+
 import click
 import ois
 from astropy.io import fits
@@ -9,7 +12,7 @@ def subtract(hduls, name="SCI", method: ("ois", "numpy")="ois"):
     """
     Returns differences of a set of images from a template image
     Arguments:
-        hduls -- list of fits hdul's where the last image is the template 
+        hduls -- list of fits hdul's where the last image is the template
         name -- name of the HDU to use
         image that the other images will be subtracted from
     """
