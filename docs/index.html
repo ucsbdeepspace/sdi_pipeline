@@ -1,0 +1,250 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>SDI Pipeline Documentations &#8212; SDI Pipeline Documentation 06/27/21 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="sdi-pipeline-documentations">
+<h1>SDI Pipeline Documentations<a class="headerlink" href="#sdi-pipeline-documentations" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-sdi.align">
+<span id="align"></span><h2>align<a class="headerlink" href="#module-sdi.align" title="Permalink to this headline">¶</a></h2>
+<p>align – this module aligns sets of astronomical data
+HISTORY</p>
+<blockquote>
+<div><dl class="simple">
+<dt>Created/Substantially refactored on 2019-09-01</dt><dd><p>Varun Iyer &lt;<a class="reference external" href="mailto:varun_iyer&#37;&#52;&#48;ucsb&#46;edu">varun_iyer<span>&#64;</span>ucsb<span>&#46;</span>edu</a>&gt;</p>
+</dd>
+</dl>
+</div></blockquote>
+<dl class="function">
+<dt id="sdi.align.align">
+<code class="sig-prename descclassname">sdi.align.</code><code class="sig-name descname">align</code><span class="sig-paren">(</span><em class="sig-param">hduls</em>, <em class="sig-param">name='SCI'</em>, <em class="sig-param">reference=None</em><span class="sig-paren">)</span><a class="headerlink" href="#sdi.align.align" title="Permalink to this definition">¶</a></dt>
+<dd><p>Aligns the source astronomical image(s) to the reference astronomical image
+
+:param hduls: list of fitsfiles
+:return: list of fistfiles with &lt;name&gt; HDU aligned</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-sdi.display">
+<span id="display"></span><h2>display<a class="headerlink" href="#module-sdi.display" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="sdi.display.display">
+<code class="sig-prename descclassname">sdi.display.</code><code class="sig-name descname">display</code><span class="sig-paren">(</span><em class="sig-param">hduls</em>, <em class="sig-param">cats=None</em>, <em class="sig-param">color='green'</em>, <em class="sig-param">size=40</em><span class="sig-paren">)</span><a class="headerlink" href="#sdi.display.display" title="Permalink to this definition">¶</a></dt>
+<dd><p>Opens a series of HDU Images on ds9, optionally with circled catalogs.
+:param hduls: list of HDUL to display
+:param cats: numpy recarray of catalog data to use. if it is a string or</p>
+<blockquote>
+<div><p>integer, it will be assumed that it refers to a specific BinTableHDU
+in the provided HDULists.</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>color</strong> – color to circle things in</p></li>
+<li><p><strong>size</strong> – size of circles</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="module-sdi.snr_function">
+<span id="snr-function"></span><h2>snr function<a class="headerlink" href="#module-sdi.snr_function" title="Permalink to this headline">¶</a></h2>
+<p>snr calculates the signal-to-noise ratio of a fits file
+Code originally by Yael Brynjegard-Bialik 2020-2021</p>
+</div>
+<div class="section" id="module-sdi.test_cmd">
+<span id="test-cmd"></span><h2>test cmd<a class="headerlink" href="#module-sdi.test_cmd" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-sdi._cli">
+<span id="cli"></span><h2>cli<a class="headerlink" href="#module-sdi._cli" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="sdi._cli.run_pipeline">
+<code class="sig-prename descclassname">sdi._cli.</code><code class="sig-name descname">run_pipeline</code><span class="sig-paren">(</span><em class="sig-param">operators</em><span class="sig-paren">)</span><a class="headerlink" href="#sdi._cli.run_pipeline" title="Permalink to this definition">¶</a></dt>
+<dd><p>Callback is invoked with an iterable of all subcommands</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="sdi._cli.operator">
+<code class="sig-prename descclassname">sdi._cli.</code><code class="sig-name descname">operator</code><span class="sig-paren">(</span><em class="sig-param">func</em><span class="sig-paren">)</span><a class="headerlink" href="#sdi._cli.operator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Decorator which wraps commands so that they return functions after being
+run by click.
+All of the returned functions are passed as an iterable
+into run_pipeline.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="sdi._cli.generator">
+<code class="sig-prename descclassname">sdi._cli.</code><code class="sig-name descname">generator</code><span class="sig-paren">(</span><em class="sig-param">func</em><span class="sig-paren">)</span><a class="headerlink" href="#sdi._cli.generator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Does what operator does, but for the first thing in the series, like
+opening the hduls.
+Works with sub-funcs that do not have ‘hduls’ as the first argument.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-sdi.extract">
+<span id="extract"></span><h2>extract<a class="headerlink" href="#module-sdi.extract" title="Permalink to this headline">¶</a></h2>
+<p>Extracts sources from a list of hduls.
+History:</p>
+<blockquote>
+<div><dl class="simple">
+<dt>Created by 2019-09-05</dt><dd><p>Varun Iyer &lt;<a class="reference external" href="mailto:varun_iyer&#37;&#52;&#48;ucsb&#46;edu">varun_iyer<span>&#64;</span>ucsb<span>&#46;</span>edu</a>&gt;</p>
+</dd>
+<dt>Refactored for 2.0.0 on 2021-04-23</dt><dd><p>Varun Iyer &lt;<a class="reference external" href="mailto:varun_iyer&#37;&#52;&#48;ucsb&#46;edu">varun_iyer<span>&#64;</span>ucsb<span>&#46;</span>edu</a>&gt;</p>
+</dd>
+</dl>
+</div></blockquote>
+<dl class="function">
+<dt id="sdi.extract.extract">
+<code class="sig-prename descclassname">sdi.extract.</code><code class="sig-name descname">extract</code><span class="sig-paren">(</span><em class="sig-param">hduls</em>, <em class="sig-param">stddev_thresh=3.0</em>, <em class="sig-param">read_ext=0</em>, <em class="sig-param">write_ext='XRT'</em><span class="sig-paren">)</span><a class="headerlink" href="#sdi.extract.extract" title="Permalink to this definition">¶</a></dt>
+<dd><p>Uses sep to find sources on a residual image(s)
+:param hduls: a list of HDUL to use as science data
+:param thresh: a threshold value for source extraction in terms of</p>
+<blockquote>
+<div><p># of stddevs above background noise</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>read_ext</strong> – the HDUL index to use as the base image. Default is 0. For
+LCO, ‘SCI’ would do the trick; for others ‘PRIMARY’.</p></li>
+<li><p><strong>write_ext</strong> – the HDUL index to write the catalog to. Default is ‘XRT’
+for eXtRacT (close enough). Can also be a tuple (extname, extver)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>a list of HDUL, each with a new <cite>write_ext</cite> HDU appended that is a
+record of extracted sources</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="module-sdi.subtract">
+<span id="subtract"></span><h2>subtract<a class="headerlink" href="#module-sdi.subtract" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="sdi.subtract.subtract">
+<code class="sig-prename descclassname">sdi.subtract.</code><code class="sig-name descname">subtract</code><span class="sig-paren">(</span><em class="sig-param">hduls</em>, <em class="sig-param">name='SCI'</em><span class="sig-paren">)</span><a class="headerlink" href="#sdi.subtract.subtract" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns differences of a set of images from a template image
+:param hduls – list of fits hdul’s where the last image is the template:
+:param name – name of the HDU to use:
+:param image that the other images will be subtracted from:</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-sdi.combine">
+<span id="combine"></span><h2>combine<a class="headerlink" href="#module-sdi.combine" title="Permalink to this headline">¶</a></h2>
+<p>Combine merges a set of astronomical data from a template
+History:</p>
+<blockquote>
+<div><dl class="simple">
+<dt>Created/Extensively Refactored 2019-09-05</dt><dd><p>Andrew Bluth &lt;<a class="reference external" href="mailto:abluth&#37;&#52;&#48;ucsb&#46;edu">abluth<span>&#64;</span>ucsb<span>&#46;</span>edu</a>&gt;</p>
+</dd>
+</dl>
+</div></blockquote>
+<dl class="function">
+<dt id="sdi.combine.combine">
+<code class="sig-prename descclassname">sdi.combine.</code><code class="sig-name descname">combine</code><span class="sig-paren">(</span><em class="sig-param">hduls</em>, <em class="sig-param">name='SCI'</em><span class="sig-paren">)</span><a class="headerlink" href="#sdi.combine.combine" title="Permalink to this definition">¶</a></dt>
+<dd><p>Combine takes a pixel-by-pixel median of a set of astronomical data to
+create a template image.
+Combine is a reduction. This means that the stream will be truncated and it
+will return just one image.</p>
+<p>
+:param hduls: list of fits hdul’s
+:param name: the name of the HDU to sum among the HDULS
+:returns: a list with a single hdul representing the median image.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-sdi.fitsio">
+<span id="fitsio"></span><h2>fitsio<a class="headerlink" href="#module-sdi.fitsio" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="sdi.fitsio.read">
+<code class="sig-prename descclassname">sdi.fitsio.</code><code class="sig-name descname">read</code><span class="sig-paren">(</span><em class="sig-param">directory</em><span class="sig-paren">)</span><a class="headerlink" href="#sdi.fitsio.read" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes a directory containing fits files and returns them as a list</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="sdi.fitsio.write">
+<code class="sig-prename descclassname">sdi.fitsio.</code><code class="sig-name descname">write</code><span class="sig-paren">(</span><em class="sig-param">hduls</em>, <em class="sig-param">directory</em>, <em class="sig-param">format_</em><span class="sig-paren">)</span><a class="headerlink" href="#sdi.fitsio.write" title="Permalink to this definition">¶</a></dt>
+<dd><p>Writes all given hduls into the directory specified</p>
+</dd></dl>
+
+<div class="toctree-wrapper compound">
+</div>
+</div>
+</div>
+<div class="section" id="indices-and-tables">
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
+<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
+<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
+</ul>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2021, Edgar Mao.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.2.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/index.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
