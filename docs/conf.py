@@ -12,16 +12,17 @@
 
 import os
 import sys
-sys.path.insert(0, '/home/robby')
+sys.path.insert(0, '../sdi')
 
 # -- Project information -----------------------------------------------------
+# This version of the documentation page is based on the old version by Robby Odum in 2019
 
 project = 'SDI Pipeline Documentation'
-copyright = '2019, Robby Odum'
-author = 'Robby Odum'
+copyright = '2021, Edgar Mao'
+author = 'Edgar Mao'
 
 # The full version, including alpha/beta/rc tags
-release = '10/14/19'
+release = '06/27/21'
 
 
 # -- General configuration ---------------------------------------------------
@@ -52,3 +53,7 @@ html_theme = 'alabaster'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+
+html_sidebars = {
+        '**':['searchbox.html'],
+        }
