@@ -1,3 +1,5 @@
+import os
+
 from .align import align
 from .combine import combine
 from .display import display
@@ -16,6 +18,5 @@ from .extract import extract_cmd as _extract_cmd
 from .subtract import subtract_cmd as _subtract_cmd
 from . import test_cmd
 
-import os
 _scidir = os.path.join(os.path.dirname(__file__), "test/fixtures/science")
 _resdir = os.path.join(os.path.dirname(__file__), "test/fixtures/residuals")

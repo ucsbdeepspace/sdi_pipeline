@@ -1,9 +1,13 @@
-import sys
-import click
-from . import _cli as cli
-from astropy.io import fits
+"""
+fitsio -- this module contains the read and write function
+"""
+
 import glob
 from tkinter.filedialog import askdirectory
+import sys
+import click
+from astropy.io import fits
+from . import _cli as cli
 
 def read(directory):
     """

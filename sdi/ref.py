@@ -12,11 +12,12 @@ from astropy.coordinates import SkyCoord
 import astropy.units as u
 from astropy.io import fits
 from . import _cli as cli
+from astropy import wcs
 
 # define specific columns so we don't get dtype issues from the chaff
 COLUMNS = ["source_id", "ra", "ra_error", "dec", "dec_error",
            "phot_g_mean_flux", "phot_g_mean_flux_error", "phot_g_mean_mag",
-           "phot_rp_mean_flux", "phot_rp_mean_flux_error", "phot_rp_mean_mag"]
+           "phot_rp_mean_flux", "phot_rp_mean_flux_error", "phot_rp_mean_mag","phot_bp_mean_flux","phot_bp_mean_flux_error","phot_bp_mean_mag"]
 
 def _in_cone(coord: SkyCoord, cone_center: SkyCoord, cone_radius: u.degree):
     """
@@ -60,8 +61,16 @@ def ref(hduls, read_ext="CAT", write_ext="REF", threshold=0.001):
         sources = hdul[read_ext].data
         output_table = np.array([])
         for source in sources:
-            ra = source["ra"]
-            dec = source["dec"]
+            x = source["x"]
+            y = source["y"]
+            coordinates = np.stack((x,y),axis=-1)
+            ra = []
+            dec = []
+            for i in coordinates:
+                pixarray = np.array([[i[0],i[1]]])
+                radec = w.wcs_pix2world(pixarray,0)
+                ra.append(radec[0][0])
+                dec.append(radec[0][1])
             coord = SkyCoord(ra=ra, dec=dec, unit=(u.deg, u.deg))
 
             ########### Query an area if we have not done so already ###########

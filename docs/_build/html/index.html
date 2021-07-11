@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="utf-8" />
-    <title>Welcome to SDI Pipeline’s documentation! &#8212; SDI Pipeline Documentation 10/14/19 documentation</title>
+    <title>SDI Pipeline Documentations &#8212; SDI Pipeline Documentation 06/27/21 documentation</title>
     <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
@@ -30,201 +30,175 @@
 
           <div class="body" role="main">
             
-  <div class="section" id="module-sdi_pipeline.align">
-<span id="welcome-to-sdi-pipeline-s-documentation"></span><h1>Welcome to SDI Pipeline’s documentation!<a class="headerlink" href="#module-sdi_pipeline.align" title="Permalink to this headline">¶</a></h1>
-<p>align contains methods to align astronomical data to the same orientation based
-on a reference image
-METHODS</p>
+  <div class="section" id="sdi-pipeline-documentations">
+<h1>SDI Pipeline Documentations<a class="headerlink" href="#sdi-pipeline-documentations" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-sdi.align">
+<span id="align"></span><h2>align<a class="headerlink" href="#module-sdi.align" title="Permalink to this headline">¶</a></h2>
+<p>align – this module aligns sets of astronomical data
+HISTORY</p>
 <blockquote>
-<div><p>align – performs image registration
-saturation – determines the saturation level of images
-ref_image – chooses the best image to use as a reference from a set of ims</p>
-</div></blockquote>
-<dl class="function">
-<dt id="sdi_pipeline.align.ref_image">
-<code class="sig-prename descclassname">sdi_pipeline.align.</code><code class="sig-name descname">ref_image</code><span class="sig-paren">(</span><em class="sig-param">fits_list</em><span class="sig-paren">)</span><a class="headerlink" href="#sdi_pipeline.align.ref_image" title="Permalink to this definition">¶</a></dt>
-<dd><p>Given a list-like set of fits data, ref_image finds the one most suitable
-to be used as a reference image.
-ARGUMENTS</p>
-<blockquote>
-<div><p>fits_list – list of array-likes or fitsdata</p>
-</div></blockquote>
-<dl class="simple">
-<dt>RETURNS</dt><dd><p>A reference to the most suitable array</p>
+<div><dl class="simple">
+<dt>Created/Substantially refactored on 2019-09-01</dt><dd><p>Varun Iyer &lt;<a class="reference external" href="mailto:varun_iyer&#37;&#52;&#48;ucsb&#46;edu">varun_iyer<span>&#64;</span>ucsb<span>&#46;</span>edu</a>&gt;</p>
 </dd>
 </dl>
-</dd></dl>
-
-<dl class="function">
-<dt id="sdi_pipeline.align.saturation">
-<code class="sig-prename descclassname">sdi_pipeline.align.</code><code class="sig-name descname">saturation</code><span class="sig-paren">(</span><em class="sig-param">hdu</em><span class="sig-paren">)</span><a class="headerlink" href="#sdi_pipeline.align.saturation" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculates the ratio of saturated pixels in data.
-ARGUMENTS</p>
-<blockquote>
-<div><p>hdu – fitsio HDU or list containing HDUs</p>
 </div></blockquote>
-<dl class="simple">
-<dt>RETURNS</dt><dd><p>(# of sat. pixels) / (# of pixels) or a list of ratios</p>
-</dd>
-</dl>
+<dl class="function">
+<dt id="sdi.align.align">
+<code class="sig-prename descclassname">sdi.align.</code><code class="sig-name descname">align</code><span class="sig-paren">(</span><em class="sig-param">hduls</em>, <em class="sig-param">name='SCI'</em>, <em class="sig-param">reference=None</em><span class="sig-paren">)</span><a class="headerlink" href="#sdi.align.align" title="Permalink to this definition">¶</a></dt>
+<dd><p>Aligns the source astronomical image(s) to the reference astronomical image
+
+:param hduls: list of fitsfiles
+:return: list of fistfiles with &lt;name&gt; HDU aligned</p>
 </dd></dl>
 
-<span class="target" id="module-sdi_pipeline.combine"></span><dl class="function">
-<dt id="sdi_pipeline.combine.combine">
-<code class="sig-prename descclassname">sdi_pipeline.combine.</code><code class="sig-name descname">combine</code><span class="sig-paren">(</span><em class="sig-param">hdu_s</em>, <em class="sig-param">method='numpy'</em><span class="sig-paren">)</span><a class="headerlink" href="#sdi_pipeline.combine.combine" title="Permalink to this definition">¶</a></dt>
-<dd><p>Combine merges a set of astronomical data from a template
-:param hdu_s –a fits hdu or a list of fits hdu’s:</p>
+</div>
+<div class="section" id="module-sdi.display">
+<span id="display"></span><h2>display<a class="headerlink" href="#module-sdi.display" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="sdi.display.display">
+<code class="sig-prename descclassname">sdi.display.</code><code class="sig-name descname">display</code><span class="sig-paren">(</span><em class="sig-param">hduls</em>, <em class="sig-param">cats=None</em>, <em class="sig-param">color='green'</em>, <em class="sig-param">size=40</em><span class="sig-paren">)</span><a class="headerlink" href="#sdi.display.display" title="Permalink to this definition">¶</a></dt>
+<dd><p>Opens a series of HDU Images on ds9, optionally with circled catalogs.
+:param hduls: list of HDUL to display
+:param cats: numpy recarray of catalog data to use. if it is a string or</p>
+<blockquote>
+<div><p>integer, it will be assumed that it refers to a specific BinTableHDU
+in the provided HDULists.</p>
+</div></blockquote>
 <dl class="field-list simple">
-<dt class="field-odd">Keyword Arguments</dt>
+<dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>-- the comination algorithm to use</strong><strong>, </strong><strong>currently only &quot;numpy&quot;</strong> (<em>method</em>) – </p></li>
-<li><p><strong>implemented and it is the default</strong> (<em>is</em>) – </p></li>
+<li><p><strong>color</strong> – color to circle things in</p></li>
+<li><p><strong>size</strong> – size of circles</p></li>
 </ul>
 </dd>
 </dl>
 </dd></dl>
 
-<span class="target" id="module-sdi_pipeline.common"></span><p>Common functionality used throughout the pipeline
-Methods</p>
-<blockquote>
-<div><p>to_np – converts fitsfiles/arrays to numpy arrays</p>
-</div></blockquote>
+</div>
+<div class="section" id="module-sdi.snr_function">
+<span id="snr-function"></span><h2>snr function<a class="headerlink" href="#module-sdi.snr_function" title="Permalink to this headline">¶</a></h2>
+<p>snr calculates the signal-to-noise ratio of a fits file
+Code originally by Yael Brynjegard-Bialik 2020-2021</p>
+</div>
+<div class="section" id="module-sdi.test_cmd">
+<span id="test-cmd"></span><h2>test cmd<a class="headerlink" href="#module-sdi.test_cmd" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-sdi._cli">
+<span id="cli"></span><h2>cli<a class="headerlink" href="#module-sdi._cli" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
-<dt id="sdi_pipeline.common.to_np">
-<code class="sig-prename descclassname">sdi_pipeline.common.</code><code class="sig-name descname">to_np</code><span class="sig-paren">(</span><em class="sig-param">np_or_hdu</em>, <em class="sig-param">err_msg='Cannot process unexpected type {}'</em><span class="sig-paren">)</span><a class="headerlink" href="#sdi_pipeline.common.to_np" title="Permalink to this definition">¶</a></dt>
-<dd><p>to_np accepts a numpy array or fits HDU and returns a numpy array
-It throws a TypeError if the input is not one of these types
-Arguments</p>
-<blockquote>
-<div><p>np_or_hdu – the array or fitsfile to convert</p>
-</div></blockquote>
-<dl class="simple">
-<dt>Keyword Arguments</dt><dd><dl class="simple">
-<dt>err_msg – the error to print if the input is of neither type; it is</dt><dd><p>optionally formatted with the type that was actually passed in if
-the string contains a ‘{}’
-default – ‘Cannot process unexpected type {}’</p>
-</dd>
-</dl>
-</dd>
-</dl>
+<dt id="sdi._cli.run_pipeline">
+<code class="sig-prename descclassname">sdi._cli.</code><code class="sig-name descname">run_pipeline</code><span class="sig-paren">(</span><em class="sig-param">operators</em><span class="sig-paren">)</span><a class="headerlink" href="#sdi._cli.run_pipeline" title="Permalink to this definition">¶</a></dt>
+<dd><p>Callback is invoked with an iterable of all subcommands</p>
 </dd></dl>
 
-<span class="target" id="module-sdi_pipeline.config"></span><p>Config manages and reads configuration files for the pipeline as well as
-Sextractor and PSFextractor
+<dl class="function">
+<dt id="sdi._cli.operator">
+<code class="sig-prename descclassname">sdi._cli.</code><code class="sig-name descname">operator</code><span class="sig-paren">(</span><em class="sig-param">func</em><span class="sig-paren">)</span><a class="headerlink" href="#sdi._cli.operator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Decorator which wraps commands so that they return functions after being
+run by click.
+All of the returned functions are passed as an iterable
+into run_pipeline.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="sdi._cli.generator">
+<code class="sig-prename descclassname">sdi._cli.</code><code class="sig-name descname">generator</code><span class="sig-paren">(</span><em class="sig-param">func</em><span class="sig-paren">)</span><a class="headerlink" href="#sdi._cli.generator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Does what operator does, but for the first thing in the series, like
+opening the hduls.
+Works with sub-funcs that do not have ‘hduls’ as the first argument.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-sdi.extract">
+<span id="extract"></span><h2>extract<a class="headerlink" href="#module-sdi.extract" title="Permalink to this headline">¶</a></h2>
+<p>Extracts sources from a list of hduls.
 History:</p>
 <blockquote>
 <div><dl class="simple">
-<dt>Created 2019-09-05</dt><dd><p>Varun Iyer &lt;<a class="reference external" href="mailto:varun_iyer&#37;&#52;&#48;ucsb&#46;edu">varun_iyer<span>&#64;</span>ucsb<span>&#46;</span>edu</a>&gt;</p>
+<dt>Created by 2019-09-05</dt><dd><p>Varun Iyer &lt;<a class="reference external" href="mailto:varun_iyer&#37;&#52;&#48;ucsb&#46;edu">varun_iyer<span>&#64;</span>ucsb<span>&#46;</span>edu</a>&gt;</p>
+</dd>
+<dt>Refactored for 2.0.0 on 2021-04-23</dt><dd><p>Varun Iyer &lt;<a class="reference external" href="mailto:varun_iyer&#37;&#52;&#48;ucsb&#46;edu">varun_iyer<span>&#64;</span>ucsb<span>&#46;</span>edu</a>&gt;</p>
 </dd>
 </dl>
 </div></blockquote>
-<p>Methods:
-Values:</p>
-<blockquote>
-<div><dl class="simple">
-<dt>PSFEX_PARAMS – location of the default parameter file for source extraction</dt><dd><p>for psf</p>
-</dd>
-</dl>
-<p>DEFAULT_CONV – locaiton of the default convolution file
-TMPDIR – location of a directory to rw temp files</p>
-</div></blockquote>
-<span class="target" id="module-sdi_pipeline.__init__"></span><span class="target" id="module-sdi_pipeline.__main__"></span><span class="target" id="module-sdi_pipeline.post"></span><span class="target" id="module-sdi_pipeline.__pycache__"></span><span class="target" id="module-sdi_pipeline.sim"></span><span class="target" id="module-sdi_pipeline.sources"></span><dl class="function">
-<dt id="sdi_pipeline.sources.collate">
-<code class="sig-prename descclassname">sdi_pipeline.sources.</code><code class="sig-name descname">collate</code><span class="sig-paren">(</span><em class="sig-param">sources</em>, <em class="sig-param">thresh=2</em><span class="sig-paren">)</span><a class="headerlink" href="#sdi_pipeline.sources.collate" title="Permalink to this definition">¶</a></dt>
-<dd><p>Correlate takes a list of sources and images and attempts to combine like
-sources
-:param sources – list of Source objects:
-:param images – list of HDU images:</p>
-<dl class="field-list simple">
-<dt class="field-odd">Keyword Arguments</dt>
-<dd class="field-odd"><p><strong>-- how close pixels need to be before they are discarded</strong> (<em>thresh=2</em>) – </p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>An astropy TimeSeries</p>
-</dd>
-</dl>
-</dd></dl>
-
 <dl class="function">
-<dt id="sdi_pipeline.sources.extract">
-<code class="sig-prename descclassname">sdi_pipeline.sources.</code><code class="sig-name descname">extract</code><span class="sig-paren">(</span><em class="sig-param">residual_s</em>, <em class="sig-param">thresh=None</em><span class="sig-paren">)</span><a class="headerlink" href="#sdi_pipeline.sources.extract" title="Permalink to this definition">¶</a></dt>
+<dt id="sdi.extract.extract">
+<code class="sig-prename descclassname">sdi.extract.</code><code class="sig-name descname">extract</code><span class="sig-paren">(</span><em class="sig-param">hduls</em>, <em class="sig-param">stddev_thresh=3.0</em>, <em class="sig-param">read_ext=0</em>, <em class="sig-param">write_ext='XRT'</em><span class="sig-paren">)</span><a class="headerlink" href="#sdi.extract.extract" title="Permalink to this definition">¶</a></dt>
 <dd><p>Uses sep to find sources on a residual image(s)
-:param residuals – image of residuals from hotpants or a list of images:</p>
+:param hduls: a list of HDUL to use as science data
+:param thresh: a threshold value for source extraction in terms of</p>
+<blockquote>
+<div><p># of stddevs above background noise</p>
+</div></blockquote>
 <dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p><dl class="simple">
-<dt>A list of Source objects representing the location and various metrics</dt><dd><p>of detected variable sources</p>
-</dd>
-</dl>
-</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="function">
-<dt id="sdi_pipeline.sources.reference">
-<code class="sig-prename descclassname">sdi_pipeline.sources.</code><code class="sig-name descname">reference</code><span class="sig-paren">(</span><em class="sig-param">source</em>, <em class="sig-param">thresh=0.001</em><span class="sig-paren">)</span><a class="headerlink" href="#sdi_pipeline.sources.reference" title="Permalink to this definition">¶</a></dt>
-<dd><p>Reference searches the database to see if sources in the given catalog(s)
-can be used as known reference stars
-:param source – source in cat.data:</p>
-<dl class="field-list simple">
-<dt class="field-odd">Keyword Arguments</dt>
+<dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>-- how tight the search cone should be in degrees</strong><strong>, </strong><strong>001 is</strong> (<em>thresh=0.001</em>) – </p></li>
-<li><p><strong>number of sigfigs we get from wcs proj. compared to ra/dec</strong> (<em>the</em>) – </p></li>
+<li><p><strong>read_ext</strong> – the HDUL index to use as the base image. Default is 0. For
+LCO, ‘SCI’ would do the trick; for others ‘PRIMARY’.</p></li>
+<li><p><strong>write_ext</strong> – the HDUL index to write the catalog to. Default is ‘XRT’
+for eXtRacT (close enough). Can also be a tuple (extname, extver)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A list of tuples; each tuple is a catalog and an SCSResults object
-representing possible matches</p>
+<dd class="field-even"><p>a list of HDUL, each with a new <cite>write_ext</cite> HDU appended that is a
+record of extracted sources</p>
 </dd>
 </dl>
-<p>cats = []</p>
-<dl class="simple">
-<dt>if isinstance(catalogs, list):</dt><dd><p>cats = catalogs</p>
-</dd>
-<dt>else:</dt><dd><p>cats.append(catalogs)</p>
-</dd>
-</dl>
-<p>matches = []
-for cat in cats:</p>
-<blockquote>
-<div><p>for source in cat.data:
-# FIXME we should run one query and then do our own collisions
-# repeated querying is very, very slow</p>
-</div></blockquote>
 </dd></dl>
 
-<span class="target" id="module-sdi_pipeline.subtract"></span><p>Contains tools from subtracting astronomical images.
-METHODS</p>
-<blockquote>
-<div><p>subtract – subtracts a template from an image or set of images</p>
-</div></blockquote>
-<span class="target" id="module-sdi_pipeline.tools"></span><span class="target" id="module-sdi_pipeline.vis"></span><p>light_curves finds the intensity of a list of sources over time
+</div>
+<div class="section" id="module-sdi.subtract">
+<span id="subtract"></span><h2>subtract<a class="headerlink" href="#module-sdi.subtract" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="sdi.subtract.subtract">
+<code class="sig-prename descclassname">sdi.subtract.</code><code class="sig-name descname">subtract</code><span class="sig-paren">(</span><em class="sig-param">hduls</em>, <em class="sig-param">name='SCI'</em><span class="sig-paren">)</span><a class="headerlink" href="#sdi.subtract.subtract" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns differences of a set of images from a template image
+:param hduls – list of fits hdul’s where the last image is the template:
+:param name – name of the HDU to use:
+:param image that the other images will be subtracted from:</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-sdi.combine">
+<span id="combine"></span><h2>combine<a class="headerlink" href="#module-sdi.combine" title="Permalink to this headline">¶</a></h2>
+<p>Combine merges a set of astronomical data from a template
 History:</p>
 <blockquote>
-<div><p>Created on 2019-09-06</p>
-</div></blockquote>
-<p>e       Varun Iyer &lt;<a class="reference external" href="mailto:varun_iyer&#37;&#52;&#48;ucsb&#46;edu">varun_iyer<span>&#64;</span>ucsb<span>&#46;</span>edu</a>&gt;</p>
-<dl class="function">
-<dt id="sdi_pipeline.vis.curves">
-<code class="sig-prename descclassname">sdi_pipeline.vis.</code><code class="sig-name descname">curves</code><span class="sig-paren">(</span><em class="sig-param">record_s</em><span class="sig-paren">)</span><a class="headerlink" href="#sdi_pipeline.vis.curves" title="Permalink to this definition">¶</a></dt>
-<dd><p>Generate a plot of light curves for each source
-:param sources – list of catalog file HDUs:
-:param images – list of science images:</p>
-<dl class="field-list simple">
-<dt class="field-odd">Keyword Arguments</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>-- how many of the curves to graph</strong> (<em>num=100</em>) – </p></li>
-<li><p><strong>-- list of sources to graph in a different color as detected</strong> (<em>detected=100</em>) – </p></li>
-<li><p><strong>-- path to save the image; if not &quot;&quot;</strong><strong>, </strong><strong>the image is saved to the</strong> (<em>fname=&quot;&quot;</em>) – specified path</p></li>
-<li><p><strong>-- whether to display the plot</strong> (<em>show=False</em>) – </p></li>
-</ul>
+<div><dl class="simple">
+<dt>Created/Extensively Refactored 2019-09-05</dt><dd><p>Andrew Bluth &lt;<a class="reference external" href="mailto:abluth&#37;&#52;&#48;ucsb&#46;edu">abluth<span>&#64;</span>ucsb<span>&#46;</span>edu</a>&gt;</p>
 </dd>
 </dl>
+</div></blockquote>
+<dl class="function">
+<dt id="sdi.combine.combine">
+<code class="sig-prename descclassname">sdi.combine.</code><code class="sig-name descname">combine</code><span class="sig-paren">(</span><em class="sig-param">hduls</em>, <em class="sig-param">name='SCI'</em><span class="sig-paren">)</span><a class="headerlink" href="#sdi.combine.combine" title="Permalink to this definition">¶</a></dt>
+<dd><p>Combine takes a pixel-by-pixel median of a set of astronomical data to
+create a template image.
+Combine is a reduction. This means that the stream will be truncated and it
+will return just one image.</p>
+<p>
+:param hduls: list of fits hdul’s
+:param name: the name of the HDU to sum among the HDULS
+:returns: a list with a single hdul representing the median image.</p>
 </dd></dl>
 
-<span class="target" id="module-sdi_pipeline.dbs"></span><span class="target" id="module-sdi_pipeline.scripts"></span><div class="toctree-wrapper compound">
+</div>
+<div class="section" id="module-sdi.fitsio">
+<span id="fitsio"></span><h2>fitsio<a class="headerlink" href="#module-sdi.fitsio" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="sdi.fitsio.read">
+<code class="sig-prename descclassname">sdi.fitsio.</code><code class="sig-name descname">read</code><span class="sig-paren">(</span><em class="sig-param">directory</em><span class="sig-paren">)</span><a class="headerlink" href="#sdi.fitsio.read" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes a directory containing fits files and returns them as a list</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="sdi.fitsio.write">
+<code class="sig-prename descclassname">sdi.fitsio.</code><code class="sig-name descname">write</code><span class="sig-paren">(</span><em class="sig-param">hduls</em>, <em class="sig-param">directory</em>, <em class="sig-param">format_</em><span class="sig-paren">)</span><a class="headerlink" href="#sdi.fitsio.write" title="Permalink to this definition">¶</a></dt>
+<dd><p>Writes all given hduls into the directory specified</p>
+</dd></dl>
+
+<div class="toctree-wrapper compound">
+</div>
 </div>
 </div>
 <div class="section" id="indices-and-tables">
@@ -243,24 +217,6 @@ History:</p>
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
-<h1 class="logo"><a href="#">SDI Pipeline Documentation</a></h1>
-
-
-
-
-
-
-
-
-<h3>Navigation</h3>
-
-<div class="relations">
-<h3>Related Topics</h3>
-<ul>
-  <li><a href="#">Documentation overview</a><ul>
-  </ul></li>
-</ul>
-</div>
 <div id="searchbox" style="display: none" role="search">
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
@@ -271,20 +227,12 @@ History:</p>
     </div>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
-
-
-
-
-
-
-
-
         </div>
       </div>
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &copy;2019, Robby Odum.
+      &copy;2021, Edgar Mao.
       
       |
       Powered by <a href="http://sphinx-doc.org/">Sphinx 2.2.0</a>

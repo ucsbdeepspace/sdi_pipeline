@@ -3,59 +3,63 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to SDI Pipeline's documentation!
+SDI Pipeline Documentations
 ======================================================
 
-.. automodule:: sdi_pipeline.align
-        :members: __init__, align, ref_image, saturation
 
-.. automodule:: sdi_pipeline.combine
-        :members: combine, __init__
+align
+--------
 
-.. automodule:: sdi_pipeline.common
-        :members: __init__, to_np
+.. automodule:: sdi.align
+        :members: align, align_cmd
 
-.. automodule:: sdi_pipeline.config
-        :members: __init__
+display
+--------
 
-.. automodule::  sdi_pipeline.__init__
-        :members:
+.. automodule:: sdi.display
+        :members: display, display_cmd
 
-.. automodule:: sdi_pipeline.__main__
-        :members:
+snr function
+-------------
 
-.. automodule:: sdi_pipeline.post
-        :members: civ_class
+.. automodule:: sdi.snr_function
+        :members: snr, snr_cmd
 
-.. automodule:: sdi_pipeline.__pycache__
-        :members:
+test cmd
+---------
 
-.. automodule:: sdi_pipeline.sim
-        :members: sim, simulation
+.. automodule:: sdi.test_cmd
+        :members: test_cmd
 
-.. automodule:: sdi_pipeline.sources
-        :members: collate, extract, __init__, record, source, reference, test
+cli
+----
 
-.. automodule:: sdi_pipeline.subtract
-        :members: __init__, subtract
+.. automodule::  sdi._cli
+        :members: cli, run_pipeline, operator, generator
 
-.. automodule:: sdi_pipeline.tools
-        :members: authorization, data_request, deps, get, obtain, proposals, stats
+extract
+--------
 
-.. automodule:: sdi_pipeline.vis
-        :members:
+.. automodule:: sdi.extract
+        :members: extract, extract_cmd
 
-.. automodule:: sdi_pipeline.dbs
-        :members: alembic, alembic.ini, v1, v2     
+subtract
+---------
 
-.. automodule:: sdi_pipeline.scripts
-        :members: compare, conversion, vis
+.. automodule:: sdi.subtract
+        :members: subtract, subtract_cmd
 
-.. automodule:: sdi_pipeline.search1
-        :members:     
+combine
+-------
 
-.. automodule:: sdi_pipeline.search
-        :members:          
+.. automodule:: sdi.combine
+        :members: combine, combine_cmd
+
+fitsio
+-------
+
+.. automodule:: sdi.fitsio
+        :members: read, write, write_comd, read_cmd
 
 .. toctree::
    :maxdepth: 2
