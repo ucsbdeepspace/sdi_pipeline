@@ -13,6 +13,7 @@ import astropy.units as u
 from astropy.io import fits
 from . import _cli as cli
 
+
 # define specific columns so we don't get dtype issues from the chaff
 COLUMNS = ["source_id", "ra", "ra_error", "dec", "dec_error",
            "phot_g_mean_flux", "phot_g_mean_flux_error", "phot_g_mean_mag",
@@ -56,14 +57,24 @@ def ref(hduls, read_ext="CAT", write_ext="REF", threshold=0.001):
     threshold = u.Quantity(threshold, u.deg)
     # we need this to track blanks till we know the dtype
     initial_empty = 0
+    template_image = fits.open("/home/pkotta/smalldata_all/section_GTAnd_smaller_ad/PTF_201101021226_i_p_scie_t025630_u009604945_f01_p100043_c02_ra11.2910_dec41.5087_asec600.fits")
     for hdul in hduls:
+        w = wcs.WCS(template_image["PRIMARY"].header)
         sources = hdul[read_ext].data
         output_table = np.array([])
+        x = []
+        y = []
         for source in sources:
-            ra = source["ra"]
-            dec = source["dec"]
+            x.append(source["x"])
+            y.append(source["y"])
+        print(x,y)
+        coordinates = np.stack((x,y),axis=-1)
+        for i in coordinates:
+            pixarray = np.array([[i[0],i[1]]])
+            radec = w.wcs_pix2world(pixarray,0)
+            ra = radec[0][0]
+            dec = radec[0][1]
             coord = SkyCoord(ra=ra, dec=dec, unit=(u.deg, u.deg))
-
             ########### Query an area if we have not done so already ###########
             # Check to see if we've queried the area
             if not any((_in_cone(coord, query, radius - 2 * threshold) \
@@ -112,10 +123,9 @@ def ref(hduls, read_ext="CAT", write_ext="REF", threshold=0.001):
         extname = write_ext
         header = fits.Header([fits.Card("HISTORY", "From the GAIA remote db")])
         try:
-            hdul.append(fits.BinTableHDU(data=output_table, header=header,
-                                     name=extname))
+            hdul.append(fits.BinTableHDU(data=output_table, header=header, name=extname))
             yield hdul
-        except TypeError:
+        except (KeyError,TypeError):
             pass
     return
 

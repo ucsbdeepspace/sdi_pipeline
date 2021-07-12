@@ -18,9 +18,16 @@ def subtract(hduls, name="SCI"):
     outputs = []
     template = combine(hduls, name)["PRIMARY"].data
      
-    for hdu in hduls:
-        diff = ois.optimal_system(image=hdu[name].data, refimage=template, method='Bramich')[0]
-        output.append(diff)     
+    if method == "ois":
+        for hdu in hduls:
+            diff = ois.optimal_system(image=hdu[name].data.byteswap().newbyteorder(), refimage=template.byteswap().newbyteorder(), method='Bramich')[0]
+            output.append(diff)     
+    elif method == "numpy":
+        for hdu in hduls:
+            diff = template - hdu[name].data
+            output.append(diff)     
+    else:
+        raise ValueError(f"method {method} unknown!")
 
     for item in output:
         # FIXME this is ragingly wrong, multiple items should be associated

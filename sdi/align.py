@@ -39,7 +39,7 @@ def align(hduls, name="SCI", reference=None):
     for source in sources:
         np_src = source
         try:
-            np_src = source.data
+            np_src = source.data.byteswap().newbyteorder()
         except AttributeError:
             pass
         # possibly unneccessary but unsure about scoping
@@ -49,7 +49,7 @@ def align(hduls, name="SCI", reference=None):
         if hasattr(source, "data"):
             output = PrimaryHDU(output, source.header)
         outputs.append(HDUList([output]))
-
+        
     return (hdul for hdul in outputs)
 
 @cli.cli.command("align")
