@@ -111,9 +111,12 @@ def ref(hduls, read_ext="CAT", write_ext="REF", threshold=0.001):
         ########## After going through all sources, add an HDU #################
         extname = write_ext
         header = fits.Header([fits.Card("HISTORY", "From the GAIA remote db")])
-        hdul.append(fits.BinTableHDU(data=output_table, header=header,
+        try:
+            hdul.append(fits.BinTableHDU(data=output_table, header=header,
                                      name=extname))
-        yield hdul
+            yield hdul
+        except TypeError:
+            pass
     return
 
 @cli.cli.command("ref")
