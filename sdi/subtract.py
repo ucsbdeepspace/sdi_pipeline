@@ -5,7 +5,7 @@ from astropy.io import fits
 from . import _cli as cli
 from .combine import combine
 
-def subtract(hduls, name="SCI"):
+def subtract(hduls, name="SCI", method: ("ois", "numpy")="ois"):
     """
     Returns differences of a set of images from a template image
     Arguments:
