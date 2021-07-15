@@ -57,7 +57,7 @@ def ref(hduls, read_ext="CAT", write_ext="REF", threshold=0.001):
     threshold = u.Quantity(threshold, u.deg)
     # we need this to track blanks till we know the dtype
     initial_empty = 0
-    template_image = fits.open("/home/pkotta/smalldata_all/section_GTAnd_smaller_ad/PTF_201101021226_i_p_scie_t025630_u009604945_f01_p100043_c02_ra11.2910_dec41.5087_asec600.fits")
+    template_image = fits.open("/home/pkotta/smalldata_all/section_GTAnd_smaller/PTF_201410263892_i_p_scie_t092025_u022000892_f01_p100043_c02_ra11.2910_dec41.5087_asec600.fits")
     for hdul in hduls:
         w = wcs.WCS(template_image["PRIMARY"].header)
         sources = hdul[read_ext].data
