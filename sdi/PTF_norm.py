@@ -59,7 +59,7 @@ def norm(hduls):
 
     #write cat_mag and mag_err to the hdul
     out_cols = cat_table.columns
-    new_cols = fits.ColDefs([fits.Column(name='mag', format='D',array=cat_mag),fits.Column(name='magerr', format='D',array=mag_err)
-    hdu = fits.BinTableHDU.from_columns(orig_cols + new_cols)
+    new_cols = fits.ColDefs([fits.Column(name='mag', format='D',array=cat_mag),fits.Column(name='magerr', format='D',array=mag_err)])
+    hdu = fits.BinTableHDU.from_columns(out_cols + new_cols)
     hduls.append(hdu)
     return hduls
