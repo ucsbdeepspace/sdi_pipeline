@@ -9,6 +9,7 @@ HISTORY
 import click
 from . import _cli as cli
 import numpy as np
+import pandas as pd
 from astropy.io.fits import PrimaryHDU, HDUList
 #from sources import Source
 import astroalign
@@ -38,14 +39,17 @@ def align(hduls, name="SCI", reference=None):
 
     for source in sources:
         np_src = source
-        try:
-            np_src = source.data.byteswap().newbyteorder()
-        except AttributeError:
-            pass
+         
         # possibly unneccessary but unsure about scoping
         output = np.array([])
+        
+        try:
+            output = astroalign.register(np_src, np_ref)[0]
+        except:
+            np_src = source.data.byteswap().newbyteorder()
+            output = astroalign.register(np_src, np_ref)[0]
+            pass
 
-        output = astroalign.register(np_src, np_ref)[0]
         if hasattr(source, "data"):
             output = PrimaryHDU(output, source.header)
         outputs.append(HDUList([output]))
