@@ -9,7 +9,6 @@ HISTORY
 import click
 from . import _cli as cli
 import numpy as np
-import pandas as pd
 from astropy.io.fits import PrimaryHDU, HDUList
 #from sources import Source
 import astroalign
