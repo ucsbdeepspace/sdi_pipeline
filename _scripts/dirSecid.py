@@ -32,7 +32,7 @@ for i,filename in enumerate(filenames):
     image = fits.open(filename)
     secid_gen = secid(image, "SCI")
     #print(secid_gen)
-    output = next(secid_gen)
-    print(f"{filename} is in section {output[0].header['SECID']}")
+    hdul = next(secid_gen)
+    print(f"{filename} is in section {hdul['SCI'].header['SECID']}")
     #print(output)
 

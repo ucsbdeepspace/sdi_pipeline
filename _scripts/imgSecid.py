@@ -27,7 +27,7 @@ image = fits.open(path)
 secid_gen = secid(image, "SCI")
 #print(secid_gen)
 output = next(secid_gen)
-print(f"{path} is in section {output[0].header['SECID']}")
+print(f"{path} is in section {output['SCI'].header['SECID']}")
 #print(output)
 
 #for value in secid_gen:
