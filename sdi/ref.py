@@ -38,7 +38,6 @@ def ref(hduls, read_ext="CAT", write_ext="REF", threshold=0.001):
     reference star info associated with hduls[0]['CAT'].data[0] will be in
     hduls[0]['REF'].data[0]. If there is no associated reference information,
     any(hduls[0]['REF'].data[0]) will be False.
-
     :param hdul: A collection or generator of HDUL
     :param read_ext: the HDU extname to read source information from.
         Must include 'ra' and 'dec' fields.
@@ -122,11 +121,16 @@ def ref(hduls, read_ext="CAT", write_ext="REF", threshold=0.001):
         ########## After going through all sources, add an HDU #################
         extname = write_ext
         header = fits.Header([fits.Card("HISTORY", "From the GAIA remote db")])
-        try:
+        
+        # replace nan values with 0.0
+        for i,elm in enumerate(output_table):
+        	for j,val in enumerate(elm):
+        		if np.isnan(val):
+        			elm[j] = 0.0
+        # only append the hdul if output_table is not empty
+        if len(output_table):
             hdul.append(fits.BinTableHDU(data=output_table, header=header, name=extname))
-            yield hdul
-        except (KeyError,TypeError):
-            pass
+        yield hdul # not sure if I should be yielding hdul even if output_table is empty
     return
 
 @cli.cli.command("ref")
@@ -145,7 +149,6 @@ def ref_cmd(hduls, read_ext="CAT", write_ext="REF", threshold=0.05):
     reference star info associated with hduls[0]['CAT'].data[0] will be in
     hduls[0]['REF'].data[0]. If there is no associated reference information,
     any(hduls[0]['REF'].data[0]) will be False.
-
     :param hdul: A collection or generator of HDUL
     :param read_ext: the HDU extname to read source information from. Must include 'ra' and 'dec' fields.
     :param write_ext: the HDU extname to write reference information from.
