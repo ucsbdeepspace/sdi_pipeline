@@ -25,7 +25,7 @@ def subtract(hduls, name="SCI", method: ("ois", "numpy")="ois"):
         for hdu in hduls:
             diff = ois.optimal_system(image=hdu[name].data, refimage=template, method='Bramich')[0]
             output.append(diff)     
-    if method == "numpy":
+    elif method == "numpy":
         for hdu in hduls:
             diff = template - hdu[name].data
             output.append(diff)     
