@@ -14,25 +14,23 @@ def subtract(hduls, name="SCI", method: ("ois", "numpy")="ois"):
         image that the other images will be subtracted from
     """
     hduls = [h for h in hduls]
-    output = []
     outputs = []
     template = combine(hduls, name)["PRIMARY"].data
-     
+    i = 0
     if method == "ois":
         for hdu in hduls:
             diff = ois.optimal_system(image=hdu[name].data.byteswap().newbyteorder(), refimage=template.byteswap().newbyteorder(), method='Bramich')[0]
-            output.append(diff)     
+            hdu.insert(0,fits.PrimaryHDU(diff), hduls[i]['SCI'].header))
+            outputs.append(hdu)
+            i+=1
     elif method == "numpy":
         for hdu in hduls:
             diff = template - hdu[name].data
-            output.append(diff)     
+            hdu.insert(0,fits.PrimaryHDU(diff), hduls[i]['SCI'].header))
+            outputs.append(hdu)
+            i+=1
     else:
         raise ValueError(f"method {method} unknown!")
-
-    for item in output:
-        # FIXME this is ragingly wrong, multiple items should be associated
-        hdu = fits.PrimaryHDU(item)
-        outputs.append(fits.HDUList([hdu])) 
     return (hdul for hdul in outputs)
 
 @cli.cli.command("subtract")
