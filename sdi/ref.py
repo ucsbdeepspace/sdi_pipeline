@@ -13,6 +13,7 @@ import astropy.units as u
 from astropy.io import fits
 from . import _cli as cli
 from astropy import wcs
+import warnings
 
 # define specific columns so we don't get dtype issues from the chaff
 COLUMNS = ["source_id", "ra", "ra_error", "dec", "dec_error",
@@ -130,6 +131,8 @@ def ref(hduls, read_ext="CAT", write_ext="REF", threshold=0.001):
         # only append the hdul if output_table is not empty
         if len(output_table):
             hdul.append(fits.BinTableHDU(data=output_table, header=header, name=extname))
+        else:
+            warnings.warn(f"empty reference table created, no stars found in the database corresponding to {hdul}")
         yield hdul # not sure if I should be yielding hdul even if output_table is empty
     return
 
