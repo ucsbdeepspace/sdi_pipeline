@@ -164,29 +164,3 @@ def collate_cmd(hduls, name="CAT", tablename="OBJ", coords="radec", algorithm="D
         xi -- minimum steepness of cluster boundary, used only in OPTICS
     """
     return  collate(hduls, name, tablename, coords, algorithm, minpts, eps, maxeps, xi)
-
-#Function to return clustered source as a list from collated hduls
-#nth index of clusters refers to nth cluster/object
-def hdultocluster(hduls, name="CAT", tablename="OBJ"):
-    """
-    Takes list of collated HDULs and returns a list of predicted objects.
-    Each entry contains an ndarray of sources associated with a specific object.
-    ndarrays contain source data taken from the HDU used to cluster sources.
-    Arguments:
-        hduls -- list of fits HDULs
-        name -- name of HDU for each HDUL containing catalog of sources and used to collate sources
-        tablename -- name of TableHDU appended to HDUL by collate function
-    """
-    data = [hdul[name].data for hdul in hduls]
-    datatype = data[0].dtype
-    clusters = [np.zeros(len(hduls), dtype=datatype) for i in range(len(hduls[0][tablename].data))]
-    for i in range(len(hduls)):
-        indexes = hduls[i][tablename].data
-        for j in range(len(indexes)):
-            index = indexes[j][0]
-            if index != -1:
-                for k in range(len(datatype)):
-                    clusters[j][i][k] = data[i][index][k]
-    return clusters
-
-
