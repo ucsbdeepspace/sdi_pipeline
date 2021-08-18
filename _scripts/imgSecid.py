@@ -13,7 +13,7 @@ root = tk.Tk()
 root.withdraw()
  
 #Opens the file explorer for fits file selection
-filenames = filedialog.askopenfilenames(initialdir = "/home/alex/smalldata/science_data", title = "Select a File", filetypes = (("Compressed Fitz files", "*.fz*"), ("Fitz files", "*.fits"), ("all files", "*.*")))
+filenames = filedialog.askopenfilenames(title = "Select a File", filetypes = (("Compressed Fitz files", "*.fz*"), ("Fitz files", "*.fits"), ("all files", "*.*")))
 
 if filenames == ():  #If the user does not select a file, close the script 
     print("File not selected. Closing script...")

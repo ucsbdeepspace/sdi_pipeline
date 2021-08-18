@@ -14,7 +14,7 @@ root = tk.Tk()
 root.withdraw()
  
 #Opens the file explorer for directory selection
-directory = filedialog.askdirectory(initialdir = "/home/alex/smalldata/science_data", title = "Select a Directory")
+directory = filedialog.askdirectory(title = "Select a Directory")
 
 if directory == ():  #If the user does not select a directory, close the script 
     print("Directory not selected. Closing script...")
