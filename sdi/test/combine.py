@@ -18,11 +18,15 @@ class TestCombine(unittest.TestCase):
     def setUpClass(cls):
         cls.read = [s for s in sdi.read(cls.path)]
         cls.output = sdi.combine(cls.read)
+        true_path = os.path.join(os.path.dirname(__file__), "fixtures/comparativeData/combineData/0.fits")
+        cls.true_output = [fits.open(true_path)]
+
 
     @classmethod
     def tearDownClass(cls):
-        for hdul in cls.read:
-            hdul.close()
+        for o, t in zip(cls.read, cls.true_output):
+            o.close()
+            t.close()
 
     def test_length(self):
         self.assertEqual(len(TestCombine.output), 1, "Combine did not return one PrimaryHDU")
@@ -31,8 +35,7 @@ class TestCombine(unittest.TestCase):
         self.assertIsInstance(TestCombine.output[0], fits.PrimaryHDU, "Output is not of type PrimaryHDU")
 
     def test_output(self):
-        self.true_output = os.path.join(os.path.dirname(__file__), "fixtures/comparativeData/combineData/0.fits")
-        self.compare = fits.FITSDiff(TestCombine.output, self.true_output)
+        self.compare = fits.FITSDiff(fits.HDUList(TestCombine.output[0]), fits.HDUList(TestCombine.true_output[0]))
         self.assertEqual(self.compare.identical, True, self.compare.report(fileobj = None))
  
     def test_click(self):
