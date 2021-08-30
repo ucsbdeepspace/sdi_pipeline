@@ -43,7 +43,6 @@ class TestAlign(unittest.TestCase):
 
     def test_output(self):
         for t, o in zip(TestAlign.true_output, TestAlign.output):
-            print("here")
             ## converts the true_output SNR value to type float32 to be congruent with output
             t[0].header['SNR'] = np.float32(t[0].header['SNR'])
             compare = fits.FITSDiff(t, o)
