@@ -40,7 +40,7 @@ class TestExtract(unittest.TestCase):
         self.assertEqual(len(TestExtract.output), 10, "Did not extract the correct number of HDULs from fixtures/residuals")
 
     def test_output(self):
-        for t, o in zip(TestExtract.true_output, TestExtract.true_output):
+        for t, o in zip(TestExtract.true_output, TestExtract.output):
             compare = fits.FITSDiff(fits.HDUList(t), fits.HDUList(o))
             self.assertEqual(compare.identical, True, compare.report(fileobj = None))
 
