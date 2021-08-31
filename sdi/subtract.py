@@ -16,19 +16,19 @@ def subtract(hduls, name="SCI", method: ("ois", "numpy")="ois"):
     hduls = [h for h in hduls]
     outputs = []
     template = combine(hduls, name)["PRIMARY"].data
-    i = 0
+
     if method == "ois":
         for hdu in hduls:
             diff = ois.optimal_system(image=hdu[name].data.byteswap().newbyteorder(), refimage=template.byteswap().newbyteorder(), method='Bramich')[0]
-            hdu.insert(0,fits.PrimaryHDU(diff), hduls[i]['SCI'].header))
+            hdu.insert(0,fits.PrimaryHDU(diff))
             outputs.append(hdu)
-            i+=1
+
     elif method == "numpy":
         for hdu in hduls:
             diff = template - hdu[name].data
-            hdu.insert(0,fits.PrimaryHDU(diff), hduls[i]['SCI'].header))
+            hdu.insert(0,fits.PrimaryHDU(diff))
             outputs.append(hdu)
-            i+=1
+
     else:
         raise ValueError(f"method {method} unknown!")
     return (hdul for hdul in outputs)
