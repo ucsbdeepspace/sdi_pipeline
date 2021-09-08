@@ -8,12 +8,18 @@ import sys
 import click
 from astropy.io import fits
 from . import _cli as cli
+import os
 
 def read(directory):
     """
     Takes a directory containing fits files and returns them as a list
     """
     paths = glob.glob("{}/*.fits*".format(directory))
+    try:
+        # if file name is numeric, paths will be sorted in ascending order
+        paths = sorted(paths, key = lambda item: int(item[len(directory):len(item)-5]))
+    except:
+        pass
     hduls = [fits.open(p) for p in paths]
     return hduls
 
