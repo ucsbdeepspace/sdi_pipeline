@@ -8,7 +8,6 @@ import sys
 import click
 from astropy.io import fits
 from . import _cli as cli
-import os
 
 def read(directory):
     """
