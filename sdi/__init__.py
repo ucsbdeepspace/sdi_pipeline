@@ -5,6 +5,8 @@ from .fitsio import read, write
 from .subtract import subtract
 from .extract import extract
 from .ref import ref
+from .secid import secid
+
 from . import test
 
 # in order to test click commands

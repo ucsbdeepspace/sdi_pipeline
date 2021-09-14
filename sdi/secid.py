@@ -1,5 +1,13 @@
+"""
+Extracts sources from a list of hduls.
+History:
+    Created by Alex Thomas <agthomas@ucsb.edu>
+        2021-09-13
+"""
+import click
 from astropy.coordinates import SkyCoord
 from astropy import units as u
+from . import _cli as cli
 
 RABOUND = [12.44,11.97,11.48,11,10.52,10.04,9.56]    
 _RASCALE = [-1,0,9,18,27,36,45]
@@ -45,3 +53,21 @@ def secid(hduls, read_ext='SCI', write_ext=-1):
         hdul[write_ext].header.set('SECID', SECid)
         #print(hduls[write_ext].header['SECID'])
         yield hdul
+
+@cli.cli.command("secid")
+@click.option("-r", "--read_ext", default='SCI',
+              help="An index number or ext name that identifies the data in"
+              "input hduls that you want source extraction for. For LCO, this "
+              "is 0 or SCI.")
+@click.option("-w", "--write_ext", default=-1,
+              help="An extension name and extension version that will identify"
+              "the HDUL that the resulting secid gets written to. Default"
+              "is -1")
+
+@cli.operator
+
+def secid_cmd(hduls, read_ext, write_ext):
+    """
+    Use secid to find the section of an image
+    """
+    return secid(hduls, read_ext, write_ext)

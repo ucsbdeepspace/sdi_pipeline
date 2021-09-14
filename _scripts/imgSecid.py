@@ -3,10 +3,7 @@ from tkinter import filedialog
 from astropy.io import fits
 import sys
 import os
-
-sdi_path = os.environ['HOME'] + "/sdi_pipeline/sdi"
-sys.path.append(sdi_path) #Find a better way @Varun
-from secid import secid
+from sdi.secid import secid
 
 #Hides the Tk() window
 root = tk.Tk()
