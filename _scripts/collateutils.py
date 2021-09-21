@@ -55,7 +55,7 @@ def cluster_ratio(hduls, name="CAT", tablename="OBJ"):
             if point[0] == -1:
                 noise += 1
         clustered_points += len(hdul[tablename].data) - noise
-    print(points, clustered_points, clustered_points/points)
+    print("{} out of {} points clustered".format(clustered_points, points), clustered_points/points)
 
 
 
