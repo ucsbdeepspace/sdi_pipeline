@@ -58,24 +58,12 @@ def ref(hduls, read_ext="CAT", write_ext="REF", threshold=0.001):
     # we need this to track blanks till we know the dtype
     initial_empty = 0
     #CHANGE THIS
-    template_image = fits.open("/home/pkotta/smalldata_all/section_GTAnd_smaller/PTF_201410263892_i_p_scie_t092025_u022000892_f01_p100043_c02_ra11.2910_dec41.5087_asec600.fits")
     for hdul in hduls:
-        w = wcs.WCS(template_image["PRIMARY"].header)
         sources = hdul[read_ext].data
         output_table = np.array([])
-        x = []
-        y = []
         for source in sources:
-            x.append(source["x"])
-            y.append(source["y"])
-        print(x,y)
-        coordinates = np.stack((x,y),axis=-1)
-        for i in coordinates:
-            pixarray = np.array([[i[0],i[1]]])
-            radec = w.wcs_pix2world(pixarray,0)
-            ra = radec[0][0]
-            dec = radec[0][1]
-            coord = SkyCoord(ra=ra, dec=dec, unit=(u.deg, u.deg))
+            ra = source['ra']
+            dec=source['dec']
             ########### Query an area if we have not done so already ###########
             # Check to see if we've queried the area
             if not any((_in_cone(coord, query, radius - 2 * threshold) \
