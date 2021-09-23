@@ -57,6 +57,7 @@ def ref(hduls, read_ext="CAT", write_ext="REF", threshold=0.001):
     threshold = u.Quantity(threshold, u.deg)
     # we need this to track blanks till we know the dtype
     initial_empty = 0
+    #CHANGE THIS
     template_image = fits.open("/home/pkotta/smalldata_all/section_GTAnd_smaller/PTF_201410263892_i_p_scie_t092025_u022000892_f01_p100043_c02_ra11.2910_dec41.5087_asec600.fits")
     for hdul in hduls:
         w = wcs.WCS(template_image["PRIMARY"].header)
@@ -91,9 +92,9 @@ def ref(hduls, read_ext="CAT", write_ext="REF", threshold=0.001):
                 for d in data:
                     # construct Coord objects for the new data
                     cached_coords.append(SkyCoord(d["ra"], d["dec"],
-                                         unit=(u.deg, u.deg)))
+                                         unit=(u.deg, u.deg))) #coords here refers to REF coords
                 # note that we have now queried this arrea
-                queried_coords.append(coord)
+                queried_coords.append(coord) #coord here refers to CAT coords
 
             ########### Look through our cache for matches #####################
             appended = False
