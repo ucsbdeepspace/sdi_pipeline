@@ -1,15 +1,24 @@
-import sys
-import click
-from . import _cli as cli
-from astropy.io import fits
+"""
+fitsio -- this module contains the read and write function
+"""
+
 import glob
 from tkinter.filedialog import askdirectory
+import sys
+import click
+from astropy.io import fits
+from . import _cli as cli
 
 def read(directory):
     """
     Takes a directory containing fits files and returns them as a list
     """
     paths = glob.glob("{}/*.fits*".format(directory))
+    try:
+        # if file name is numeric, paths will be sorted in ascending order
+        paths = sorted(paths, key = lambda item: int(item[len(directory):len(item)-5]))
+    except:
+        pass
     hduls = [fits.open(p) for p in paths]
     return hduls
 
