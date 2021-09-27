@@ -7,20 +7,21 @@ HISTORY
 # general imports
 
 import click
-from . import _cli as cli
 import numpy as np
 from astropy.io.fits import PrimaryHDU, HDUList
 #from sources import Source
 import astroalign
 from _scripts import snr
+from . import _cli as cli
+
 
 def align(hduls, name="SCI", reference=None):
-    """ 
-    Aligns the source astronomical image(s) to the reference astronomical image 
-    \b 
-    :param hduls: list of fitsfiles 
-    :return: list of fistfiles with <name> HDU aligned 
-    """ 
+    """
+    Aligns the source astronomical image(s) to the reference astronomical image
+    \b
+    :param hduls: list of fitsfiles
+    :return: list of fistfiles with <name> HDU aligned
+    """
 
     hduls_list = [hdul for hdul in hduls]
     sources = [hdul[name] for hdul in hduls_list]
@@ -65,4 +66,4 @@ def align_cmd(hduls, name="SCI", reference=None):
     :param hduls: list of fitsfiles
     :return: list of fistfiles with <name> HDU aligned
     """
-    return align([hduls for hduls in hduls],name,reference)
+    return align([hduls for hduls in hduls], name, reference)
