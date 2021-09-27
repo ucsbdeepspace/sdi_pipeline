@@ -57,15 +57,18 @@ def ref(hduls, read_ext="CAT", write_ext="REF", threshold=0.001):
     threshold = u.Quantity(threshold, u.deg)
     # we need this to track blanks till we know the dtype
     initial_empty = 0
+    w = wcs.WCS(hduls[0]['SCI'].header)
     for hdul in hduls:
         sources = hdul[read_ext].data
         output_table = np.array([])
+        pixel_to_skycoord(x,y,w)
+        x = hdul[read_ext]["x"]
+        y = hdul[read_ext]["y"]
+    
         for source in sources:
-            x = source["x"]
-            y = source["y"]
-            coordinates = np.stack((x,y),axis=-1)
-            ra = []
-            dec = []
+
+           
+
             for i in coordinates:
                 pixarray = np.array([[i[0],i[1]]])
                 radec = w.wcs_pix2world(pixarray,0)
