@@ -1,4 +1,3 @@
-import os
 import click
 import ois
 from astropy.io import fits
