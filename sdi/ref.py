@@ -61,10 +61,9 @@ def ref(hduls, read_ext="CAT", write_ext="REF", threshold=0.001):
     for hdul in hduls:
         sources = hdul[read_ext].data
         output_table = np.array([])
+        x = hdul[read_ext].data["x"]
+        y = hdul[read_ext].data["y"]
         pixel_to_skycoord(x,y,w)
-        x = hdul[read_ext]["x"]
-        y = hdul[read_ext]["y"]
-    
         for source in sources:
 
            
