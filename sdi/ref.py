@@ -63,17 +63,8 @@ def ref(hduls, read_ext="CAT", write_ext="REF", threshold=0.001):
         output_table = np.array([])
         x = hdul[read_ext].data["x"]
         y = hdul[read_ext].data["y"]
-        pixel_to_skycoord(x,y,w)
-        for source in sources:
-
-           
-
-            for i in coordinates:
-                pixarray = np.array([[i[0],i[1]]])
-                radec = w.wcs_pix2world(pixarray,0)
-                ra.append(radec[0][0])
-                dec.append(radec[0][1])
-            coord = SkyCoord(ra=ra, dec=dec, unit=(u.deg, u.deg))
+        coordinates = wcs.utils.pixel_to_skycoord(x,y,w)
+        for coord in coordinates:
 
             ########### Query an area if we have not done so already ###########
             # Check to see if we've queried the area
