@@ -38,7 +38,6 @@ def ref(hduls, read_ext="CAT", write_ext="REF", threshold=0.001):
     reference star info associated with hduls[0]['CAT'].data[0] will be in
     hduls[0]['REF'].data[0]. If there is no associated reference information,
     any(hduls[0]['REF'].data[0]) will be False.
-
     :param hdul: A collection or generator of HDUL
     :param read_ext: the HDU extname to read source information from.
         Must include 'ra' and 'dec' fields.
