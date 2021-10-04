@@ -18,7 +18,8 @@ import warnings
 # define specific columns so we don't get dtype issues from the chaff
 COLUMNS = ["source_id", "ra", "ra_error", "dec", "dec_error",
            "phot_g_mean_flux", "phot_g_mean_flux_error", "phot_g_mean_mag",
-           "phot_rp_mean_flux", "phot_rp_mean_flux_error", "phot_rp_mean_mag","phot_bp_mean_mag"]
+           "phot_rp_mean_flux", "phot_rp_mean_flux_error", "phot_rp_mean_mag",
+           "phot_bp_mean_flux","phot_bp_mean_flux_error","phot_bp_mean_mag"]
 
 def _in_cone(coord: SkyCoord, cone_center: SkyCoord, cone_radius: u.degree):
     """
@@ -57,8 +58,9 @@ def ref(hduls, read_ext="CAT", write_ext="REF", threshold=0.001):
     threshold = u.Quantity(threshold, u.deg)
     # we need this to track blanks till we know the dtype
     initial_empty = 0
-    w = wcs.WCS(hduls[0]['SCI'].header)
+    #w = wcs.WCS(hduls[0]['SCI'].header)
     for hdul in hduls:
+        w = wcs.WCS(hdul['SCI'].header)
         sources = hdul[read_ext].data
         output_table = np.array([])
         x = hdul[read_ext].data["x"]
@@ -143,7 +145,6 @@ def ref_cmd(hduls, read_ext="CAT", write_ext="REF", threshold=0.05):
     reference star info associated with hduls[0]['CAT'].data[0] will be in
     hduls[0]['REF'].data[0]. If there is no associated reference information,
     any(hduls[0]['REF'].data[0]) will be False.
-
     :param hdul: A collection or generator of HDUL
     :param read_ext: the HDU extname to read source information from. Must include 'ra' and 'dec' fields.
     :param write_ext: the HDU extname to write reference information from.
