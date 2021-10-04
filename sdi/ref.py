@@ -57,25 +57,15 @@ def ref(hduls, read_ext="CAT", write_ext="REF", threshold=0.001):
     threshold = u.Quantity(threshold, u.deg)
     # we need this to track blanks till we know the dtype
     initial_empty = 0
-    #CHANGE THIS
-    template_image = fits.open("/home/pkotta/smalldata_all/section_GTAnd_smaller/PTF_201410263892_i_p_scie_t092025_u022000892_f01_p100043_c02_ra11.2910_dec41.5087_asec600.fits")
+    w = wcs.WCS(hduls[0]['SCI'].header)
     for hdul in hduls:
-        w = wcs.WCS(template_image["PRIMARY"].header)
         sources = hdul[read_ext].data
         output_table = np.array([])
-        x = []
-        y = []
-        for source in sources:
-            x.append(source["x"])
-            y.append(source["y"])
-        print(x,y)
-        coordinates = np.stack((x,y),axis=-1)
-        for i in coordinates:
-            pixarray = np.array([[i[0],i[1]]])
-            radec = w.wcs_pix2world(pixarray,0)
-            ra = radec[0][0]
-            dec = radec[0][1]
-            coord = SkyCoord(ra=ra, dec=dec, unit=(u.deg, u.deg))
+        x = hdul[read_ext].data["x"]
+        y = hdul[read_ext].data["y"]
+        coordinates = wcs.utils.pixel_to_skycoord(x,y,w)
+        for coord in coordinates:
+
             ########### Query an area if we have not done so already ###########
             # Check to see if we've queried the area
             if not any((_in_cone(coord, query, radius - 2 * threshold) \
@@ -153,6 +143,7 @@ def ref_cmd(hduls, read_ext="CAT", write_ext="REF", threshold=0.05):
     reference star info associated with hduls[0]['CAT'].data[0] will be in
     hduls[0]['REF'].data[0]. If there is no associated reference information,
     any(hduls[0]['REF'].data[0]) will be False.
+
     :param hdul: A collection or generator of HDUL
     :param read_ext: the HDU extname to read source information from. Must include 'ra' and 'dec' fields.
     :param write_ext: the HDU extname to write reference information from.
