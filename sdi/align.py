@@ -8,7 +8,7 @@ HISTORY
 
 import click
 import numpy as np
-from astropy.io.fits import PrimaryHDU, HDUList
+from astropy.io.fits import PrimaryHDU, HDUList, CompImageHDU
 #from sources import Source
 import astroalign
 from _scripts import snr
@@ -24,7 +24,7 @@ def align(hduls, name="SCI", reference=None):
     """
 
     hduls_list = [hdul for hdul in hduls]
-    sources = [hdul[name] for hdul in hduls_list]
+    #sources = [hdul[name] for hdul in hduls_list] ###Minor typo should be [hdu[name] for hdul in hduls_list]
     outputs = []
 
     if reference is None:
@@ -37,8 +37,9 @@ def align(hduls, name="SCI", reference=None):
     except AttributeError:
         pass
 
-    for source in sources:
-        np_src = source
+    i = 0
+    for hdul in hduls_list: ## iterating through list of hdul's. Need to find SCI HDU in stack. 
+        np_src = hdul[name] # np_src = hdul["SCI"]
          
         # possibly unneccessary but unsure about scoping
         output = np.array([])
@@ -46,15 +47,16 @@ def align(hduls, name="SCI", reference=None):
         try:
             output = astroalign.register(np_src, np_ref)[0]
         except:
-            np_src = source.data.byteswap().newbyteorder()
+            np_src = hdul[name].data.byteswap().newbyteorder()
             output = astroalign.register(np_src, np_ref)[0]
             pass
 
-        if hasattr(source, "data"):
-            output = PrimaryHDU(output, source.header)
-        outputs.append(HDUList([output]))
+        if hasattr(hdul[name], "data"):
+            output = CompImageHDU(data = output, header = hdul[name].header, name = "ALGN")
+        hduls_list[i].insert(1,output)
+        i+=1
         
-    return (hdul for hdul in outputs)
+    return (hdul for hdul in hduls_list)
 
 @cli.cli.command("align")
 @click.option("-n", "--name", default="SCI", help="The HDU to be aligned.")

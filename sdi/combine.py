@@ -9,7 +9,7 @@ import numpy as np
 from astropy.io import fits
 from . import _cli as cli
 
-def combine(hduls, name="SCI"):
+def combine(hduls, name="ALGN"):
     """
     Combine takes a pixel-by-pixel median of a set of astronomical data to
     create a template image.
@@ -20,7 +20,7 @@ def combine(hduls, name="SCI"):
     :param hduls: list of fits hdul's
     :param name: the name of the HDU to sum among the HDULS
     :returns: a list with a single hdul representing the median image.
-    """
+    """ 
     hduls_list = [hdul for hdul in hduls]
     try:
         data = [hdul[name].data for hdul in hduls_list]
@@ -38,7 +38,7 @@ def combine(hduls, name="SCI"):
 # TODO add option to pick out a specific table instead of just science
 
 ## combine function wrapper
-def combine_cmd(hduls, name="SCI"):
+def combine_cmd(hduls, name="ALGN"):
     """
     Combine takes a pixel-by-pixel median of a set of astronomical data to
     create a template image.
