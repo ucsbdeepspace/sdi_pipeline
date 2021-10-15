@@ -45,7 +45,7 @@ def align(hduls, name="SCI", reference=None):
         
         try:
             output = astroalign.register(np_src, np_ref)[0]
-        except:
+        except ValueError:
             np_src = source.data.byteswap().newbyteorder()
             output = astroalign.register(np_src, np_ref)[0]
             pass
