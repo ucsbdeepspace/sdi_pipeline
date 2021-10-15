@@ -37,8 +37,7 @@ def align(hduls, name="SCI", reference=None):
     except AttributeError:
         pass
 
-    i = 0
-    for hdul in hduls_list: ## iterating through list of hdul's. Need to find SCI HDU in stack. 
+    for i,hdul in enumerate(hduls_list): ## iterating through list of hdul's. Need to find SCI HDU in stack. 
         np_src = hdul[name] # np_src = hdul["SCI"]
          
         # possibly unneccessary but unsure about scoping
@@ -54,7 +53,6 @@ def align(hduls, name="SCI", reference=None):
         if hasattr(hdul[name], "data"):
             output = CompImageHDU(data = output, header = hdul[name].header, name = "ALGN")
         hduls_list[i].insert(1,output)
-        i+=1
         
     return (hdul for hdul in hduls_list)
 
