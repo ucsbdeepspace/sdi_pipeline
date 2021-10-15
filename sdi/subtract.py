@@ -21,7 +21,7 @@ def subtract(hduls, name="SCI", method: ("ois", "numpy")="ois"):
         for hdu in hduls:
             try:
                 diff = ois.optimal_system(image=hdu[name].data, refimage=template, method='Bramich')[0]
-            except:
+            except ValueError:
                 diff = ois.optimal_system(image=hdu[name].data.byteswap().newbyteorder(), refimage=template.byteswap().newbyteorder(), method='Bramich')[0]
             hdu.insert(0,fits.PrimaryHDU(diff))
             hdu.insert(1,fits.CompImageHDU(data = None, header =  hduls[i]['SCI'].header))
