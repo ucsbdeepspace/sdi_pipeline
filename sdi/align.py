@@ -35,15 +35,15 @@ def align(hduls, name="SCI", reference=None):
     except AttributeError:
         pass
 
-    for i,hdul in enumerate(hduls_list): ## iterating through list of hdul's. Need to find SCI HDU in stack. 
-        np_src = hdul[name] # np_src = hdul["SCI"]
+    for i,hdul in enumerate(hduls_list):
+        np_src = hdul[name]
          
         # possibly unneccessary but unsure about scoping
         output = np.array([])
         
         try:
             output = astroalign.register(np_src, np_ref)[0]
-        except:
+        except ValueError:
             np_src = hdul[name].data.byteswap().newbyteorder()
             output = astroalign.register(np_src, np_ref)[0]
             pass

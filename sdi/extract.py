@@ -50,10 +50,10 @@ def extract(hduls, stddev_thresh=3.0, read_ext="SUB", write_ext="XRT"):
 @click.option("-t", "--threshold", default=3.0,
               help="A threshold value to use for source extraction in terms of"
               "the number of stddevs above the background noise.", type=float)
-@click.option("-r", "--read_ext", default="SUB", ## This should be changed to "SUB"
+@click.option("-r", "--read_ext", default="SUB",
               help="An index number or ext name that identifies the data in"
               "input hduls that you want source extraction for. For LCO, this "
-              "is 0 or SCI.")
+              "is 1 or SUB.") ##We might want to re-word this now.
 @click.option("-w", "--write_ext", default=("XRT", 1),
               help="An extension name and extension version that will identify"
               "the HDUL that the resulting BinTable gets written to. Default"

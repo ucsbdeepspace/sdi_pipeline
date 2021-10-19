@@ -19,7 +19,7 @@ def subtract(hduls, name="ALGN", method: ("ois", "numpy")="ois"):
         for i,hdu in enumerate(hduls):
             try:
                 diff = ois.optimal_system(image=hdu[name].data, refimage=template, method='Bramich')[0]
-            except:
+            except ValueError:
                 diff = ois.optimal_system(image=hdu[name].data.byteswap().newbyteorder(), refimage=template.byteswap().newbyteorder(), method='Bramich')[0]
             hdu.insert(1,CompImageHDU(data = diff, header =  hduls[i]['ALGN'].header, name = "SUB"))
             outputs.append(hdu)
