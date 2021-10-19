@@ -11,7 +11,6 @@ from astropy.io import fits
 import sep
 from . import _cli as cli
 
-
 def extract(hduls, stddev_thresh=3.0, read_ext="SUB", write_ext="XRT"):
     """
     Uses sep to find sources on a residual image(s)

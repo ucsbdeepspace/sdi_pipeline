@@ -33,7 +33,7 @@ def combine(hduls, name="ALGN"):
     return fits.HDUList([hdu])
 
 @cli.cli.command("combine")
-@click.option("-n", "--name", default="SCI", help="The HDU to be aligned.")
+@click.option("-n", "--name", default="ALGN", help="The HDU to be aligned.")
 @cli.operator
 # TODO add option to pick out a specific table instead of just science
 
