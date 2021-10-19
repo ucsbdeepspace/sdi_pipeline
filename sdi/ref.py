@@ -64,7 +64,7 @@ def ref(hduls, read_ext="CAT", write_ext="REF", threshold=0.001):
         output_table = np.array([])
         for source in sources:
             ra = source['ra']
-            dec=source['dec']
+            dec = source['dec']
             coord = SkyCoord(ra=ra,dec=dec,unit=(u.deg,u.deg))
             ########### Query an area if we have not done so already ###########
             # Check to see if we've queried the area

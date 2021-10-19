@@ -48,7 +48,7 @@ def align(hduls, name="SCI", reference=None):
             output = astroalign.register(np_src, np_ref)[0]
             pass
 
-        if hasattr(hdul[name], "data"): ##not sure what happens if this if statement fails. previously it would just write empty data.
+        if hasattr(hdul[name], "data"): ##not sure what happens if this if statement fails. previously it would just write empty data. With this set up data would be left alone.
             idx = hdul.index_of(name)
             hdul[idx].data = output
             hdul[idx].header['EXTNAME'] = ("ALGN    ")
