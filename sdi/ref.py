@@ -13,11 +13,13 @@ import astropy.units as u
 from astropy.io import fits
 from . import _cli as cli
 from astropy import wcs
+import warnings
 
 # define specific columns so we don't get dtype issues from the chaff
 COLUMNS = ["source_id", "ra", "ra_error", "dec", "dec_error",
            "phot_g_mean_flux", "phot_g_mean_flux_error", "phot_g_mean_mag",
-           "phot_rp_mean_flux", "phot_rp_mean_flux_error", "phot_rp_mean_mag","phot_bp_mean_flux","phot_bp_mean_flux_error","phot_bp_mean_mag"]
+           "phot_rp_mean_flux", "phot_rp_mean_flux_error", "phot_rp_mean_mag",
+           "phot_bp_mean_flux","phot_bp_mean_flux_error","phot_bp_mean_mag"]
 
 def _in_cone(coord: SkyCoord, cone_center: SkyCoord, cone_radius: u.degree):
     """
@@ -38,7 +40,6 @@ def ref(hduls, read_ext="CAT", write_ext="REF", threshold=0.001):
     reference star info associated with hduls[0]['CAT'].data[0] will be in
     hduls[0]['REF'].data[0]. If there is no associated reference information,
     any(hduls[0]['REF'].data[0]) will be False.
-
     :param hdul: A collection or generator of HDUL
     :param read_ext: the HDU extname to read source information from.
         Must include 'ra' and 'dec' fields.
@@ -57,22 +58,14 @@ def ref(hduls, read_ext="CAT", write_ext="REF", threshold=0.001):
     threshold = u.Quantity(threshold, u.deg)
     # we need this to track blanks till we know the dtype
     initial_empty = 0
+    #CHANGE THIS
     for hdul in hduls:
         sources = hdul[read_ext].data
         output_table = np.array([])
         for source in sources:
-            x = source["x"]
-            y = source["y"]
-            coordinates = np.stack((x,y),axis=-1)
-            ra = []
-            dec = []
-            for i in coordinates:
-                pixarray = np.array([[i[0],i[1]]])
-                radec = w.wcs_pix2world(pixarray,0)
-                ra.append(radec[0][0])
-                dec.append(radec[0][1])
-            coord = SkyCoord(ra=ra, dec=dec, unit=(u.deg, u.deg))
-
+            ra = source['ra']
+            dec = source['dec']
+            coord = SkyCoord(ra=ra,dec=dec,unit=(u.deg,u.deg))
             ########### Query an area if we have not done so already ###########
             # Check to see if we've queried the area
             if not any((_in_cone(coord, query, radius - 2 * threshold) \
@@ -89,9 +82,9 @@ def ref(hduls, read_ext="CAT", write_ext="REF", threshold=0.001):
                 for d in data:
                     # construct Coord objects for the new data
                     cached_coords.append(SkyCoord(d["ra"], d["dec"],
-                                         unit=(u.deg, u.deg)))
+                                         unit=(u.deg, u.deg))) #coords here refers to REF coords
                 # note that we have now queried this arrea
-                queried_coords.append(coord)
+                queried_coords.append(coord) #coord here refers to CAT coords
 
             ########### Look through our cache for matches #####################
             appended = False
@@ -120,9 +113,18 @@ def ref(hduls, read_ext="CAT", write_ext="REF", threshold=0.001):
         ########## After going through all sources, add an HDU #################
         extname = write_ext
         header = fits.Header([fits.Card("HISTORY", "From the GAIA remote db")])
-        hdul.append(fits.BinTableHDU(data=output_table, header=header,
-                                     name=extname))
-        yield hdul
+        
+        # replace nan values with 0.0
+        for i,elm in enumerate(output_table):
+        	for j,val in enumerate(elm):
+        		if np.isnan(val):
+        			elm[j] = 0.0
+        # only append the hdul if output_table is not empty
+        if len(output_table):
+            hdul.append(fits.BinTableHDU(data=output_table, header=header, name=extname))
+        else:
+            warnings.warn(f"empty reference table created, no stars found in the database corresponding to {hdul}")
+        yield hdul # not sure if I should be yielding hdul even if output_table is empty
     return
 
 @cli.cli.command("ref")
@@ -141,7 +143,6 @@ def ref_cmd(hduls, read_ext="CAT", write_ext="REF", threshold=0.05):
     reference star info associated with hduls[0]['CAT'].data[0] will be in
     hduls[0]['REF'].data[0]. If there is no associated reference information,
     any(hduls[0]['REF'].data[0]) will be False.
-
     :param hdul: A collection or generator of HDUL
     :param read_ext: the HDU extname to read source information from. Must include 'ra' and 'dec' fields.
     :param write_ext: the HDU extname to write reference information from.
