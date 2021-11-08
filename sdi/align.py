@@ -8,12 +8,11 @@ HISTORY
 
 import click
 import numpy as np
-from astropy.io.fits import PrimaryHDU, HDUList
+from astropy.io.fits import CompImageHDU
 #from sources import Source
 import astroalign
 from _scripts import snr
 from . import _cli as cli
-
 
 def align(hduls, name="SCI", reference=None):
     """
@@ -24,7 +23,6 @@ def align(hduls, name="SCI", reference=None):
     """
 
     hduls_list = [hdul for hdul in hduls]
-    sources = [hdul[name] for hdul in hduls_list]
     outputs = []
 
     if reference is None:
@@ -37,24 +35,25 @@ def align(hduls, name="SCI", reference=None):
     except AttributeError:
         pass
 
-    for source in sources:
-        np_src = source
+    for i,hdul in enumerate(hduls_list):
+        np_src = hdul[name]
          
         # possibly unneccessary but unsure about scoping
         output = np.array([])
         
         try:
             output = astroalign.register(np_src, np_ref)[0]
-        except:
-            np_src = source.data.byteswap().newbyteorder()
+        except ValueError:
+            np_src = hdul[name].data.byteswap().newbyteorder()
             output = astroalign.register(np_src, np_ref)[0]
             pass
 
-        if hasattr(source, "data"):
-            output = PrimaryHDU(output, source.header)
-        outputs.append(HDUList([output]))
-        
-    return (hdul for hdul in outputs)
+        if hasattr(hdul[name], "data"): ##not sure what happens if this if statement fails. previously it would just write empty data. With this set up data would be left alone.
+            idx = hdul.index_of(name)
+            hdul[idx].data = output
+            hdul[idx].header['EXTNAME'] = ("ALGN    ")
+
+    return (hdul for hdul in hduls_list)
 
 @cli.cli.command("align")
 @click.option("-n", "--name", default="SCI", help="The HDU to be aligned.")

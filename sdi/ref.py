@@ -66,8 +66,8 @@ def ref(hduls, read_ext="CAT", write_ext="REF", threshold=0.001):
         x = hdul[read_ext].data["x"]
         y = hdul[read_ext].data["y"]
         coordinates = wcs.utils.pixel_to_skycoord(x,y,w)
-        for coord in coordinates:
 
+        for coord in coordinates:
             ########### Query an area if we have not done so already ###########
             # Check to see if we've queried the area
             if not any((_in_cone(coord, query, radius - 2 * threshold) \

@@ -11,8 +11,7 @@ from astropy.io import fits
 import sep
 from . import _cli as cli
 
-
-def extract(hduls, stddev_thresh=3.0, read_ext=0, write_ext="XRT"):
+def extract(hduls, stddev_thresh=3.0, read_ext="SUB", write_ext="XRT"):
     """
     Uses sep to find sources on a residual image(s)
     :param hduls: a list of HDUL to use as science data
@@ -51,10 +50,10 @@ def extract(hduls, stddev_thresh=3.0, read_ext=0, write_ext="XRT"):
 @click.option("-t", "--threshold", default=3.0,
               help="A threshold value to use for source extraction in terms of"
               "the number of stddevs above the background noise.", type=float)
-@click.option("-r", "--read_ext", default=0,
+@click.option("-r", "--read_ext", default="SUB",
               help="An index number or ext name that identifies the data in"
               "input hduls that you want source extraction for. For LCO, this "
-              "is 0 or SCI.")
+              "is 1 or SUB.") ##We might want to re-word this now.
 @click.option("-w", "--write_ext", default=("XRT", 1),
               help="An extension name and extension version that will identify"
               "the HDUL that the resulting BinTable gets written to. Default"
