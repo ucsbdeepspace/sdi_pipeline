@@ -49,8 +49,12 @@ def extract(hduls, stddev_thresh=3.0, read_ext="SUB", write_ext="XRT"):
             extname = write_ext[0]
         except (ValueError, TypeError):
             pass
-        hdul.append(fits.BinTableHDU(data=sources, header=header,
-                                     name=extname, ver=extver))
+        cat = fits.BinTableHDU(data=sources, header=header,
+                                     name=extname, ver=extver)
+        out_cols = cat.data.columns
+        new_cols = fits.ColDefs([fits.Column(name = 'ra',format = 'D',array=ra),fits.Column(name = 'dec', format = 'D', array=dec)])
+        new_table = fits.BinTableHDU(header = header, name = extname, ver=extver).from_columns(out_cols + new_cols)
+        hdul.append(new_table)
         yield hdul
 
 @cli.cli.command("extract")
