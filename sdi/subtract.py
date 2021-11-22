@@ -14,7 +14,7 @@ def subtract(hduls, name="ALGN", method: ("ois", "numpy")="ois"):
     """
     hduls = [h for h in hduls]
     outputs = []
-    template = combine(hduls, name)["PRIMARY"].data # this is a temporary HDUL containing 1 PrimaryHDU with combinded data
+    template = combine(hduls, name)["PRIMARY"].data # this is a temporary HDUL containing 1 PrimaryHDU with combined data
     if method == "ois":
         for i,hdu in enumerate(hduls):
             try:

@@ -49,10 +49,11 @@ def align(hduls, name="SCI", reference=None):
             pass
 
         if hasattr(hdul[name], "data"): ##not sure what happens if this if statement fails. previously it would just write empty data. With this set up data would be left alone.
-            idx = hdul.index_of(name)
+            idx = hdul.index_of(name) #this variable is used to keep track of SCI header as the name is switched to ALGN.
             hdul[idx].data = output
             hdul[idx].header['EXTNAME'] = ("ALGN    ")
-
+            hdul[idx].header = reference.header #hdul['sci'].header = reference.header
+            
     return (hdul for hdul in hduls_list)
 
 @cli.cli.command("align")
