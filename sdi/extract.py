@@ -34,6 +34,13 @@ def extract(hduls, stddev_thresh=3.0, read_ext="SUB", write_ext="XRT"):
             bkg = sep.Background(data)
         sources = sep.extract(data - bkg.back(), bkg.globalrms * stddev_thresh,
                        segmentation_map=False)
+        #Convert xy to RA/DEC in ICRS
+        from astropy import wcs
+        from astropy.coordinates import SkyCoord
+        coords = wcs.utils.pixel_to_skycoord(sources['x'],sources['y'],wcs.WCS(hdul[read_ext].header),origin = 0)
+        coords_icrs = SkyCoord(coords,frame = 'icrs')
+        ra = coords_icrs.ra.degree
+        dec = coords_icrs.dec.degree
         extname = write_ext
         extver = None
         header = fits.Header([fits.Card("HISTORY", "Extracted by sep.")])
@@ -42,8 +49,12 @@ def extract(hduls, stddev_thresh=3.0, read_ext="SUB", write_ext="XRT"):
             extname = write_ext[0]
         except (ValueError, TypeError):
             pass
-        hdul.append(fits.BinTableHDU(data=sources, header=header,
-                                     name=extname, ver=extver))
+        cat = fits.BinTableHDU(data=sources, header=header,
+                                     name=extname, ver=extver)
+        out_cols = cat.data.columns
+        new_cols = fits.ColDefs([fits.Column(name = 'ra',format = 'D',array=ra),fits.Column(name = 'dec', format = 'D', array=dec)])
+        new_table = fits.BinTableHDU(header = header, name = extname, ver=extver).from_columns(out_cols + new_cols)
+        hdul.append(new_table)
         yield hdul
 
 @cli.cli.command("extract")
