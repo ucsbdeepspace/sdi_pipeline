@@ -4,3 +4,4 @@ from .align import *
 from .subtract import *
 from .extract import *
 from .combine import *
+from .collate import *

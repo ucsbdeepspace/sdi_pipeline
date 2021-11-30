@@ -8,7 +8,7 @@ from .subtract import subtract
 from .extract import extract
 from .ref import ref
 from .secid import secid
-
+from .collate import collate
 from . import test
 
 # in order to test click commands
@@ -18,6 +18,7 @@ from .align import align_cmd as _align_cmd
 from .combine import combine_cmd as _combine_cmd
 from .extract import extract_cmd as _extract_cmd
 from .subtract import subtract_cmd as _subtract_cmd
+from .collate import collate_cmd as _collate_cmd
 from . import test_cmd
 
 _scidir = os.path.join(os.path.dirname(__file__), "test/fixtures/science")
