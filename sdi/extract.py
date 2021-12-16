@@ -51,10 +51,12 @@ def extract(hduls, stddev_thresh=3.0, read_ext="SUB", write_ext="XRT"):
             pass
         cat = fits.BinTableHDU(data=sources, header=header,
                                      name=extname, ver=extver)
+        print('name = ',extname)
         out_cols = cat.data.columns
         new_cols = fits.ColDefs([fits.Column(name = 'ra',format = 'D',array=ra),fits.Column(name = 'dec', format = 'D', array=dec)])
         new_table = fits.BinTableHDU(header = header, name = extname, ver=extver).from_columns(out_cols + new_cols)
-        hdul.append(new_table)
+        new_hdu = fits.BinTableHDU(new_table.data, header = header, name = extname, ver = extver)
+        hdul.append(new_hdu)
         yield hdul
 
 @cli.cli.command("extract")
