@@ -27,7 +27,7 @@ def obj_mean(cluster):
     return [mean/(len(cluster)-cluster.count(None)) for mean in means]
 
 #Exact same function as in _scripts/collateutils, called at the end of running collate
-def cluster_ratio(hduls, name=-1, tablename="OBJ"):#replaced CAT from name with -1
+def cluster_ratio(hduls, name="CAT", tablename="OBJ"):
     """
     Prints number of clustered sources out of total sources as well as the percent of clustered sources.
     Arguments:
@@ -48,7 +48,7 @@ def cluster_ratio(hduls, name=-1, tablename="OBJ"):#replaced CAT from name with 
 
 
 #Collate function itself
-def collate(hduls, name=-1, tablename="OBJ", coords = "xy", algorithm="DBSCAN", minpts=4, eps=0.001, maxeps=np.inf, xi=0.85, collision_fix=False):
+def collate(hduls, name="CAT", tablename="OBJ", coords = "xy", algorithm="DBSCAN", minpts=4, eps=0.001, maxeps=np.inf, xi=0.85, collision_fix=False):
     """
     Clusters source data from HDULs to predict sky objects and then appends a TableHDU to each HDUL containing object/cluster data. 
     The nth index of each TableHDU for each HDUL refers to the same object with the value of the index referring to the
@@ -159,7 +159,7 @@ def collate(hduls, name=-1, tablename="OBJ", coords = "xy", algorithm="DBSCAN", 
     return (hdul for hdul in hduls)
 
 @cli.cli.command("collate")
-@click.option("-n", "--name", default=-1, help="name of HDU for each HDUL containing catalog of sources")
+@click.option("-n", "--name", default="CAT", help="name of HDU for each HDUL containing catalog of sources")
 @click.option("-t", "--tablename", default="OBJ", help="name of TableHDU to store cluster data")
 @click.option("-c", "--coords", default="xy", type=click.Choice(["xy", "radec"], case_sensitive=False), help="choice of either 'xy' or 'radec' coordinate system used to calculate distance between sources for clustering")
 @click.option("-a", "--algorithm", default="DBSCAN", type=click.Choice(["DBSCAN", "OPTICS"], case_sensitive=False), help="choice of 'DBSCAN' or 'OPTICS' clustering algorithm")
