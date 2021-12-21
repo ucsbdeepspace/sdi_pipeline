@@ -30,7 +30,7 @@ def _in_cone(coord: SkyCoord, cone_center: SkyCoord, cone_radius: u.degree):
     # The 0.0001 so we don't get edge effects
     return d < (cone_radius ** 2)
 
-def ref(hduls, read_ext="CAT", write_ext="REF", threshold=0.001):
+def ref(hduls, read_ext=-1, write_ext="REF", threshold=0.001):
     """
     add information about remote reference stars to a 'REF' BinTableHDU
     \b
@@ -54,24 +54,28 @@ def ref(hduls, read_ext="CAT", write_ext="REF", threshold=0.001):
     cached_coords = []
     cached_table = np.array([])
 
-    radius = u.Quantity(threshold * 20, u.deg)
-    threshold = u.Quantity(threshold, u.deg)
+    # an arbitrary cone search radius, separate from the threshold value
+    cone_radius = u.Quantity(0.04 , u.deg)
     # we need this to track blanks till we know the dtype
     initial_empty = 0
-    #CHANGE THIS
+    # An adaptive method of obtaining the threshold value
     for hdul in hduls:
+        threshold = max(hdul[read_ext].data["a"])*hdul['ALGN'].header['PIXSCALE']/3600
+        threshold = u.Quantity(threshold, u.deg)
+        w = wcs.WCS(hdul['ALGN'].header)
         sources = hdul[read_ext].data
         output_table = np.array([])
-        for source in sources:
-            ra = source['ra']
-            dec = source['dec']
-            coord = SkyCoord(ra=ra,dec=dec,unit=(u.deg,u.deg))
+        x = hdul[read_ext].data["x"]
+        y = hdul[read_ext].data["y"]
+        coordinates = wcs.utils.pixel_to_skycoord(x,y,w)
+
+        for coord in coordinates:
             ########### Query an area if we have not done so already ###########
             # Check to see if we've queried the area
-            if not any((_in_cone(coord, query, radius - 2 * threshold) \
+            if not any((_in_cone(coord, query, cone_radius - 2 * threshold) \
                         for query in queried_coords)):
                 # we have never queried the area. Do a GAIA cone search
-                data = Gaia.cone_search_async(coord, radius, columns=COLUMNS,
+                data = Gaia.cone_search_async(coord, cone_radius, columns=COLUMNS,
                                               output_format="csv").get_results()
                 data = data.as_array()
                 # add the cache table to the data
@@ -82,15 +86,16 @@ def ref(hduls, read_ext="CAT", write_ext="REF", threshold=0.001):
                 for d in data:
                     # construct Coord objects for the new data
                     cached_coords.append(SkyCoord(d["ra"], d["dec"],
-                                         unit=(u.deg, u.deg))) #coords here refers to REF coords
-                # note that we have now queried this arrea
-                queried_coords.append(coord) #coord here refers to CAT coords
+                                         unit=(u.deg, u.deg)))
+                # note that we have now queried this area
+                queried_coords.append(coord)
 
             ########### Look through our cache for matches #####################
             appended = False
             for ct, cs in zip(cached_table, cached_coords):
                 # look through the cache to find a match
-                if _in_cone(coord, cs, threshold):
+                # switched coord and cs
+                if _in_cone(cs, coord, threshold):
                     # if we find a match, copy it to the output table
                     if len(output_table):
                         output_table = np.hstack((output_table, np.copy(ct)))
@@ -113,12 +118,11 @@ def ref(hduls, read_ext="CAT", write_ext="REF", threshold=0.001):
         ########## After going through all sources, add an HDU #################
         extname = write_ext
         header = fits.Header([fits.Card("HISTORY", "From the GAIA remote db")])
-        
         # replace nan values with 0.0
         for i,elm in enumerate(output_table):
-        	for j,val in enumerate(elm):
-        		if np.isnan(val):
-        			elm[j] = 0.0
+            for j,val in enumerate(elm):
+                if np.isnan(val):
+                    elm[j] = 0.0
         # only append the hdul if output_table is not empty
         if len(output_table):
             hdul.append(fits.BinTableHDU(data=output_table, header=header, name=extname))
@@ -133,7 +137,7 @@ def ref(hduls, read_ext="CAT", write_ext="REF", threshold=0.001):
 @click.option("-t", "--threshold", default=0.001, type=float,
               help="The threshold in degrees for a cone search")
 @cli.operator
-def ref_cmd(hduls, read_ext="CAT", write_ext="REF", threshold=0.05):
+def ref_cmd(hduls, read_ext="ALGN", write_ext="REF"):
     """
     add information about remote reference stars to a 'REF' BinTableHDU
     \b
