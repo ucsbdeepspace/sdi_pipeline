@@ -18,7 +18,8 @@ import warnings
 # define specific columns so we don't get dtype issues from the chaff
 COLUMNS = ["source_id", "ra", "ra_error", "dec", "dec_error",
            "phot_g_mean_flux", "phot_g_mean_flux_error", "phot_g_mean_mag",
-           "phot_rp_mean_flux", "phot_rp_mean_flux_error", "phot_rp_mean_mag","phot_bp_mean_mag"]
+           "phot_rp_mean_flux", "phot_rp_mean_flux_error", "phot_rp_mean_mag",
+           "phot_bp_mean_flux","phot_bp_mean_flux_error","phot_bp_mean_mag"]
 
 def _in_cone(coord: SkyCoord, cone_center: SkyCoord, cone_radius: u.degree):
     """
@@ -67,6 +68,7 @@ def ref(hduls, read_ext=-1, write_ext="REF", threshold=0.001):
         x = hdul[read_ext].data["x"]
         y = hdul[read_ext].data["y"]
         coordinates = wcs.utils.pixel_to_skycoord(x,y,w)
+
         for coord in coordinates:
             ########### Query an area if we have not done so already ###########
             # Check to see if we've queried the area
