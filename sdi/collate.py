@@ -59,7 +59,7 @@ def collate(hduls, name="CAT", tablename="OBJ", coords = ["xy"], algorithm="DBSC
         hduls -- list of fits HDULs
         name -- name of HDU for each HDUL containing catalog of sources
         tablename -- name of TableHDU to store cluster data
-        coords -- choice of either 'xy' or 'radec' coordinate system used to calculate distance between sources for clustering
+        coords -- choice of either 'xy', 'radec' or a custom list of coordinates to calculate distance between sources for clustering
         algorithm -- choice of 'DBSCAN' or 'OPTICS' clustering algorithm
         minpts -- minimum cluster size
         eps -- point neighborhood radius parameter, used only in DBSCAN
@@ -171,7 +171,7 @@ def collate_cmd(hduls, name="CAT", tablename="OBJ", coords=["xy"], algorithm="DB
         hduls -- list of fits HDULs
         name -- name of HDU for each HDUL containing catalog of sources
         tablename -- name of TableHDU to store cluster data
-        coords -- coordinate system used to calculate distance between sources for clustering, either xy or radec
+        coords -- choice of either 'xy', 'radec' or a custom list of coordinates to calculate distance between sources for clustering
         algorithm -- clustering algorithm of choice, either DBSCAN or OPTICS
         minpts -- minimum cluster size
         eps -- point neighborhood radius parameter, used only in DBSCAN
