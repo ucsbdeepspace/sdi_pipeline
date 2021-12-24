@@ -137,7 +137,7 @@ def ref(hduls, read_ext=-1, write_ext="REF", threshold=0.001):
 @click.option("-t", "--threshold", default=0.001, type=float,
               help="The threshold in degrees for a cone search")
 @cli.operator
-def ref_cmd(hduls, read_ext="ALGN", write_ext="REF"):
+def ref_cmd(hduls, read_ext="ALGN", write_ext="REF", threshold=0.001):
     """
     add information about remote reference stars to a 'REF' BinTableHDU
     \b
