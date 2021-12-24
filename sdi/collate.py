@@ -19,11 +19,13 @@ def dist_func(a1, a2):
     return tot**0.5
 
 def obj_mean(cluster):
-    means = [0,0,0]
+    means = None
     for source in cluster:
         if source != None:
-            for i in range(len(source)):
-                means[i] += source[i]
+            if not means:
+                 means = [i for i in range(len(source))]
+            for idx, coord in enumerate(source):
+                means[idx] += coord
     return [mean/(len(cluster)-cluster.count(None)) for mean in means]
 
 #Exact same function as in _scripts/collateutils, called at the end of running collate
