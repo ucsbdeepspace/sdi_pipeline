@@ -48,7 +48,7 @@ def cluster_ratio(hduls, name="CAT", tablename="OBJ"):
 
 
 #Collate function itself
-def collate(hduls, name="CAT", tablename="OBJ", coords = "xy", algorithm="DBSCAN", minpts=4, eps=0.001, maxeps=np.inf, xi=0.85, collision_fix=False):
+def collate(hduls, name="CAT", tablename="OBJ", coords = ["xy"], algorithm="DBSCAN", minpts=4, eps=0.001, maxeps=np.inf, xi=0.85, collision_fix=False):
     """
     Clusters source data from HDULs to predict sky objects and then appends a TableHDU to each HDUL containing object/cluster data. 
     The nth index of each TableHDU for each HDUL refers to the same object with the value of the index referring to the
@@ -70,21 +70,16 @@ def collate(hduls, name="CAT", tablename="OBJ", coords = "xy", algorithm="DBSCAN
     hduls = [hdul for hdul in hduls]
     collisions = []
     collision_count = 0
-    irdf = [[] for i in range(3)]
     labels = None
-
+    if coords[0] == "xy":
+        coords = ("x", "y", "flux")
+    elif coords[0] == "radec":
+        coords = ("ra", "dec", "flux")
+    irdf = [[] for i in range(len(coords))]
     for hdul in hduls:
         data = hdul[name].data
-        if coords == "radec":
-            irdf[0] = irdf[0] + list(data["ra"])
-            irdf[1] = irdf[1] + list(data["dec"])
-        elif coords == 'xy':
-            irdf[0] = irdf[0] + list(data["x"])
-            irdf[1] = irdf[1] + list(data["y"])
-        else:
-            print('Invalid value for coords, please use "radec" or "xy"')
-            return
-        irdf[2] =  irdf[2] + list(data["flux"])
+        for idx, coord in enumerate(coords):
+            irdf[idx] += list(data[coord])
     normirdf = [_norm(array) for array in irdf]
 
     if algorithm == "DBSCAN":
@@ -134,10 +129,7 @@ def collate(hduls, name="CAT", tablename="OBJ", coords = "xy", algorithm="DBSCAN
                 for i in range(count):
                     index = hdul[tablename].data[i][0]
                     if index != -1:
-                        if coords == "radec":
-                            clusters[i].append([sources[index]["ra"], sources[index]["dec"], sources[index]["flux"]])
-                        elif coords == "xy":
-                            clusters[i].append([sources[index]["x"], sources[index]["y"], sources[index]["flux"]])
+                        clusters[i].append([sources[index][coord] for coord in coords])
                     else:
                         clusters[i].append(None)
 
@@ -145,12 +137,8 @@ def collate(hduls, name="CAT", tablename="OBJ", coords = "xy", algorithm="DBSCAN
             for collision in collisions:
                 sources = all_sources[collision[0]]
                 mean = means[collision[1]]
-                if coords == 'radec':
-                    s1 = (sources[collision[2]]["ra"], sources[collision[2]]["dec"], sources[collision[2]]["flux"])
-                    s2 = (sources[collision[3]]["ra"], sources[collision[3]]["dec"], sources[collision[3]]["flux"])
-                elif coords == 'xy':
-                    s1 = (sources[collision[2]]["x"], sources[collision[2]]["y"], sources[collision[2]]["flux"])
-                    s2 = (sources[collision[3]]["x"], sources[collision[3]]["y"], sources[collision[3]]["flux"])
+                s1 = [sources[collision[2]][coord] for coord in coords]
+                s2 = [sources[collision[3]][coord] for coord in coords]
                 if dist_func(s1, mean) < dist_func(s2, mean):
                     hduls[collision[0]][tablename].data[collision[1]][0] = collision[2]
 
@@ -161,7 +149,8 @@ def collate(hduls, name="CAT", tablename="OBJ", coords = "xy", algorithm="DBSCAN
 @cli.cli.command("collate")
 @click.option("-n", "--name", default="CAT", help="name of HDU for each HDUL containing catalog of sources")
 @click.option("-t", "--tablename", default="OBJ", help="name of TableHDU to store cluster data")
-@click.option("-c", "--coords", default="xy", type=click.Choice(["xy", "radec"], case_sensitive=False), help="choice of either 'xy' or 'radec' coordinate system used to calculate distance between sources for clustering")
+#@click.option("-c", "--coords", default="xy", type=click.Choice(["xy", "radec"], case_sensitive=False), help="choice of either 'xy' or 'radec' coordinate system used to calculate distance between sources for clustering")
+@click.option("-c", "--coords", default=["xy"], multiple=True, help="choice of either 'xy' or 'radec' coordinate system used to calculate distance between sources for clustering")
 @click.option("-a", "--algorithm", default="DBSCAN", type=click.Choice(["DBSCAN", "OPTICS"], case_sensitive=False), help="choice of 'DBSCAN' or 'OPTICS' clustering algorithm")
 @click.option("-p", "--minpts", default=4, help="minimum cluster size")
 @click.option("-e", "--eps", default=0.001, help="point neighborhood radius parameter, used only in DBSCAN")
@@ -171,7 +160,7 @@ def collate(hduls, name="CAT", tablename="OBJ", coords = "xy", algorithm="DBSCAN
 @cli.operator
 
 #collate function wrapper
-def collate_cmd(hduls, name="CAT", tablename="OBJ", coords="xy", algorithm="DBSCAN", minpts=4, eps=0.001, maxeps=np.inf, xi=0.85, collision_fix=False):
+def collate_cmd(hduls, name="CAT", tablename="OBJ", coords=["xy"], algorithm="DBSCAN", minpts=4, eps=0.001, maxeps=np.inf, xi=0.85, collision_fix=False):
     """
     Clusters source data from HDULs to predict sky objects and then appends a TableHDU to each HDUL containing object/cluster data. 
     The nth index of each TableHDU for each HDUL refers to the same object with the value of the index referring to the
