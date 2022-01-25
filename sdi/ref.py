@@ -27,7 +27,6 @@ def _in_cone(coord: SkyCoord, cone_center: SkyCoord, cone_radius: u.degree):
     cone_radius
     """
     d = (coord.ra - cone_center.ra) ** 2 + (coord.dec - cone_center.dec) ** 2
-    # The 0.0001 so we don't get edge effects
     return d < (cone_radius ** 2)
 
 def ref(hduls, read_ext=-1, write_ext="REF", threshold=0.001):
@@ -55,19 +54,18 @@ def ref(hduls, read_ext=-1, write_ext="REF", threshold=0.001):
     cached_table = np.array([])
 
     # an arbitrary cone search radius, separate from the threshold value
-    cone_radius = u.Quantity(0.04 , u.deg)
+    cone_radius = u.Quantity(0.05 , u.deg)
     # we need this to track blanks till we know the dtype
     initial_empty = 0
     # An adaptive method of obtaining the threshold value
     for hdul in hduls:
         threshold = max(hdul[read_ext].data["a"])*hdul['ALGN'].header['PIXSCALE']/3600
         threshold = u.Quantity(threshold, u.deg)
-        w = wcs.WCS(hdul['ALGN'].header)
+        ra = hdul[read_ext].data["RA"]
+        dec = hdul[read_ext].data["DEC"]
         sources = hdul[read_ext].data
         output_table = np.array([])
-        x = hdul[read_ext].data["x"]
-        y = hdul[read_ext].data["y"]
-        coordinates = wcs.utils.pixel_to_skycoord(x,y,w)
+        coordinates = SkyCoord(ra,dec,unit="deg")
 
         for coord in coordinates:
             ########### Query an area if we have not done so already ###########
@@ -80,7 +78,7 @@ def ref(hduls, read_ext=-1, write_ext="REF", threshold=0.001):
                 data = data.as_array()
                 # add the cache table to the data
                 if len(cached_table):
-                    cached_table = np.hstack((data.data, cached_table))
+                    cached_table = np.hstack((cached_table, data.data))
                 else:
                     cached_table = data.data
                 for d in data:
@@ -94,7 +92,6 @@ def ref(hduls, read_ext=-1, write_ext="REF", threshold=0.001):
             appended = False
             for ct, cs in zip(cached_table, cached_coords):
                 # look through the cache to find a match
-                # switched coord and cs
                 if _in_cone(cs, coord, threshold):
                     # if we find a match, copy it to the output table
                     if len(output_table):
@@ -105,6 +102,8 @@ def ref(hduls, read_ext=-1, write_ext="REF", threshold=0.001):
                                        dtype=output_table.dtype), output_table))
                     appended = True
                     break
+                else:
+                    pass
 
             ########### Add a blank if we didn't find anything #################
             if not appended:
@@ -137,7 +136,7 @@ def ref(hduls, read_ext=-1, write_ext="REF", threshold=0.001):
 @click.option("-t", "--threshold", default=0.001, type=float,
               help="The threshold in degrees for a cone search")
 @cli.operator
-def ref_cmd(hduls, read_ext="ALGN", write_ext="REF", threshold=0.001):
+def ref_cmd(hduls, read_ext=-1, write_ext="REF", threshold=0.001):
     """
     add information about remote reference stars to a 'REF' BinTableHDU
     \b
