@@ -172,53 +172,6 @@ comp_sources = np.array(comp_sources)[c_idx]
 comp_stars = np.array(comp_stars)[c_idx]
 
 #%%
-"""
-#TODO: put this in a for loop, one for every image
-#One image 
-#Replace 0 with image index
-#gaia_mag_transformed, gaia_mag_err, gaia_flux_transformed, gaia_flux_err
-ref_mag = [] #magnitudes for the reference stars in first image
-ref_magerr = 0.16497
-for i in range(0,len(comp_stars)):
-    ref_mag.append(norm(comp_stars[i],comp_sources[i])[0])
-
-#One image replace sci_ims[0] with image index
-#Using 'a' as a sloppy alternative to aperture. Maybe look into sep.kron_radius or flux_radius. aperture is a radius.
-#Have to select index [0] for each mag to get just the numerical value without the description of the column object
-instrumental_mag = []
-in_magerr = []
-
-for i in range(0,len(comp_sources)):
-    instrumental_mag.append(photometry(np.mean(comp_sources[i]['x']),np.mean(comp_sources[i]['y']), np.mean(comp_sources[i]['a']), sci_ims[0])[0][0])
-    in_magerr.append(photometry(np.mean(comp_sources[i]['x']),np.mean(comp_sources[i]['y']), np.mean(comp_sources[i]['a']), sci_ims[0])[1][0])
-
-#Goes through the first image, finds all comp star photometry JUST FOR FIRST IMAGE
-
-#One image Doesn't have to change
-#TODO: Check that  stars are not variable
-#Performing the linear fit
-#First find all places where there are non-nan values:
-idx = np.where([np.isnan(r)==False for r in ref_mag])[0]
-x = [instrumental_mag[i] for i in idx]
-y = [ref_mag[i] for i in idx]
-
-fit, sum_sq_resid, rank, singular_values, rcond = np.polyfit(x, y, 1, full=True)
-fit_fn = np.poly1d(fit) 
-# fit_fn is now a function which takes in x and returns an estimate for y, 
-# we use this later to calculate the target mag
-
-residuals = fit_fn(x)-y #model-data
-#One image
-fig=plt.figure(figsize=(18, 16), dpi= 80, facecolor='w', edgecolor='k')
-plt.plot(x,y, 'yo', x, fit_fn(x), '--k')
-#One image
-#Doesn't have to change
-#Use the fit from above to calculate the target magnitude
-target_inst_mag = photometry(np.mean(target['x']),np.mean(target['x']), np.mean(target['a']), sci_f)[0][0]
-target_mag = fit_fn(target_inst_mag)
-target_magerr = np.std(residuals)
-"""
-#%%
 target_mag = []
 target_magerr = []
 ts = []
@@ -243,7 +196,6 @@ for im in range(0,len(ims)):
         
         #For multiple ref stars
         
-        #!TODO: Currently, comp_sources still have zeros? np.mean will not work anyway
         instrumental_mag = []
         in_magerr = []
         for i in range(0,len(comp_sources)):
@@ -277,42 +229,6 @@ for im in range(0,len(ims)):
         target_inst_mag = photometry(target['x'][im],target['y'][im], target['a'][im], sci_ims[im])[0][0]
         target_mag.append(corr + target_inst_mag)
         target_magerr.append(in_magerr)
-#%%
-for im in range(0,len(sci_ims)):
-    #gaia_mag_transformed, gaia_mag_err, gaia_flux_transformed, gaia_flux_err
-    ref_mag = [] #magnitudes for the reference stars in first image
-    ref_magerr = 0.16497
-    for i in range(0,len(comp_stars)):
-        ref_mag.append(norm(comp_stars[i],comp_sources[i])[im])
-    #Using 'a' as a sloppy alternative to aperture. Maybe look into sep.kron_radius or flux_radius. aperture is a radius.
-    #Have to select index [0] for each mag to get just the numerical value without the description of the column object
-    
-    instrumental_mag = (photometry(comp_sources[i]['x'][j],comp_sources[i]['y'][j], comp_sources[i]['a'][j], sci_ims[im])[0][0] for i,j in zip(range(0,len(comp_sources)), range(0,len(comp_sources[0]['x']))))
-    in_magerr = (photometry(comp_sources[i]['x'][j],comp_sources[i]['y'][j],comp_sources[i]['a'][j], sci_ims[im])[1][0] for i,j in zip(range(0,len(comp_sources)), range(0,len(comp_sources[0]['x']))))
-    
-    x = [i for i in instrumental_mag]
-    print(x)
-    #TODO: Check that  stars are not variable
-    #Performing the linear fit
-    #First find all places where there are non-nan values:
-    idx = np.where([np.isnan(r)==False for r in ref_mag])[0]
-    x = [x[i] for i in idx]
-    y = [-ref_mag[i] for i in idx]
-
-    fit, sum_sq_resid, rank, singular_values, rcond = np.polyfit(x, y, 1, full=True)
-    fit_fn = np.poly1d(fit)
-    residuals = fit_fn(x)-y
-    
-    #plotting
-    fig=plt.figure(figsize=(18, 16), dpi= 80, facecolor='w', edgecolor='k')
-    plt.plot(x,y, 'yo', x, fit_fn(x), '--k')
-    plt.show()
-    
-    # fit_fn is now a function which takes in x and returns an estimate for y, 
-    #Use the fit from above to calculate the target magnitude
-    target_inst_mag = photometry(target['x'][im],target['y'][im], target['a'][im], sci_ims[im])[0][0]
-    target_mag.append(fit_fn(target_inst_mag))
-    target_magerr.append(np.std(residuals))
 #%%
 rows = zip(target_mag,target_magerr, ts)
 
