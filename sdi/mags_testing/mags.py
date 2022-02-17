@@ -106,11 +106,11 @@ def photometry(x,y,aperture,sci_img):
 
 #%%
 #Start by retrieveing radec for all reference stars
-files = glob('sdi_output_test/*.fits',recursive=True)
+files = glob('/home/pkotta/sdi_output_test/*.fits',recursive=True)
 ims = [fits.open(f) for f in files]
 
 #Science images:
-sci_f = glob('GTAnd_SCI/*.fits',recursive=True)
+sci_f = glob('/home/pkotta/GTAnd_SCI/*.fits',recursive=True)
 sci_ims = [fits.open(f) for f in sci_f]
 #%%
 try:
