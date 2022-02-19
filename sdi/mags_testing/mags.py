@@ -106,11 +106,11 @@ def photometry(x,y,aperture,sci_img):
 
 #%%
 #Start by retrieveing radec for all reference stars
-files = glob('/home/pkotta/sdi_output_test/*.fits',recursive=True)
+files = glob('sdi_output_test/*.fits',recursive=True)
 ims = [fits.open(f) for f in files]
 
 #Science images:
-sci_f = glob('/home/pkotta/GTAnd_SCI/*.fits',recursive=True)
+sci_f = glob('GTAnd_SCI/*.fits',recursive=True)
 sci_ims = [fits.open(f) for f in sci_f]
 #%%
 try:
@@ -137,21 +137,23 @@ var_source = hdultocluster(ims, name = 'XRT', tablename= 'XOBJ')
 #Find the comp stars in every image
 
 #These are the comp stars from the ref hdus
-comp_stars = [cluster_search_radec(ref_source, coord.ra.deg, coord.dec.deg) for coord in comp_coords]
+
 #Check that the comp_coords are not present in XRT (non-variable sources)
 var_sources = [cluster_search_radec(var_source, coord.ra.deg, coord.dec.deg) for coord in comp_coords]
 var_coords = [SkyCoord(v['ra'],v['dec'], frame = 'icrs', unit = 'degree') for v in var_sources][0]
-
-comp_coords_new = []
-for v,c in zip(var_coords, comp_coords):
-    if v!=c:
-        comp_coords_new.append(c)
-    else:
-        pass
-
+#%%
+nonvar_idx = []
+for v in var_coords:
+    for c in range(0,len(comp_coords)):
+        if v!=comp_coords[c]:
+            nonvar_idx.append(c)
+        else:
+            pass
+comp_coords_new = np.array(comp_coords)[list(set(nonvar_idx))]
+#%%
 #These are the comp stars in the cat table itself. so these stars are in our images
 comp_sources = [cluster_search_radec(cat_source, coord.ra.deg, coord.dec.deg) for coord in comp_coords_new]
-
+comp_stars = [cluster_search_radec(ref_source, coord.ra.deg, coord.dec.deg) for coord in comp_coords_new]
 #This is the target star in every image
 target = cluster_search_radec(cat_source, target_coord.ra.deg,target_coord.dec.deg)
 #%%
@@ -188,18 +190,26 @@ for im in range(0,len(ims)):
     try:
         #gaia_mag_transformed, gaia_mag_err, gaia_flux_transformed, gaia_flux_err
         ref_mag = [] #magnitudes for the reference stars in first image
+        bright_idx = []
         ref_magerr = 0.16497
         for i in range(0,len(comp_stars)):
-            ref_mag.append(norm(comp_stars[i],comp_sources[i])[im])
+            mag_temp = norm(comp_stars[i],comp_sources[i])[im] #This can be made better, normalize once outside the for loop and then iterate
+            if mag_temp < 18: #This is just for GTAnd. This will change for other stars based on the target star's magnitude
+                ref_mag.append(mag_temp)
+                bright_idx.append(i)
+            else:
+                pass
+        comp_sources_new = np.array(comp_sources)[bright_idx]
         #Using 'a' as a sloppy alternative to aperture. Maybe look into sep.kron_radius or flux_radius. aperture is a radius.
         #Have to select index [0] for each mag to get just the numerical value without the description of the column object
         
         #For multiple ref stars
         
+        #!TODO: Currently, comp_sources still have zeros? np.mean will not work anyway
         instrumental_mag = []
         in_magerr = []
-        for i in range(0,len(comp_sources)):
-            arr = photometry(comp_sources[i]['x'][im],comp_sources[i]['y'][im], comp_sources[i]['a'][im], sci_ims[im])
+        for i in range(0,len(comp_sources_new)):
+            arr = photometry(comp_sources_new[i]['x'][im],comp_sources_new[i]['y'][im], comp_sources_new[i]['a'][im], sci_ims[im])
             instrumental_mag.append(arr[0][0])
             in_magerr.append(arr[1][0])
         
@@ -234,7 +244,7 @@ rows = zip(target_mag,target_magerr, ts)
 
 import csv
 
-with open('sdi_lc_GTAnd_new_new.csv', "w") as f:
+with open('var_bright_test.csv', "w") as f:
     writer = csv.writer(f)
     for row in rows:
         writer.writerow(row)
