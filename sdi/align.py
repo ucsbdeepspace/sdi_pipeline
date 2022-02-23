@@ -34,13 +34,13 @@ def align(hduls, name="SCI", ref=None):
 
     if ref is None: #No reference index given. we establish reference based on best signal to noise ratio
 
-        reference = hduls_list[0][name] #by default first hdul is reference
+        reference = hduls_list[0][name] #0th index reference is used by default
         ref_SNR = hduls_list[0]["CAT"].header["SNR"]
 
-        for hdul in hduls_list: #loops though hdul lists finding the hdul with greatest snr.
+        for hdul in hduls_list: #loops though hdul lists finding the hdul with greatest snr
             if hdul["CAT"].header["SNR"] > ref_SNR: #compares SNR value of current hdul to ref
                 ref_SNR = hdul["CAT"].header["SNR"]
-                reference = hdul[name]
+        reference = hdul[name]
 
     else: #ref index is provided
         reference = hduls_list[ref][name]
