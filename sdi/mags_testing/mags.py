@@ -107,11 +107,11 @@ def photometry(x,y,aperture,sci_img):
 
 #%%
 #Start by retrieveing radec for all reference stars
-files = glob('sdi_output_test/*.fits',recursive=True)
+files = glob('/home/pkotta/sdi_output_test/*.fits',recursive=True)
 ims = [fits.open(f) for f in files]
 
 #Science images:
-sci_f = glob('GTAnd_SCI/*.fits',recursive=True)
+sci_f = glob('/home/pkotta/GTAnd_SCI/*.fits',recursive=True)
 sci_ims = [fits.open(f) for f in sci_f]
 #%%
 try:
@@ -222,9 +222,9 @@ for im in range(0,len(ims)):
         fit, sum_sq_resid, rank, singular_values, rcond = np.polyfit(x[1:], y[1:], 1, full=True)
         fit_fn = np.poly1d(fit)
         residuals = fit_fn(x)-y
-        fig=plt.figure(figsize=(18, 16), dpi= 80, facecolor='w', edgecolor='k')
-        plt.plot(x,y, 'yo', x, fit_fn(x), '--k')
-        plt.show()        
+        #fig=plt.figure(figsize=(18, 16), dpi= 80, facecolor='w', edgecolor='k')
+        #plt.plot(x,y, 'yo', x, fit_fn(x), '--k')
+        #plt.show()        
         # fit_fn is now a function which takes in x and returns an estimate for y, 
         #Use the fit from above to calculate the target magnitude
         target_inst_mag = photometry(target['x'][im],target['y'][im], target['a'][im], sci_ims[im])[0][0]
