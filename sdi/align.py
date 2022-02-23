@@ -48,7 +48,7 @@ def align(hduls, name="SCI", ref=None):
     try:
         ref_data = reference.data
     except AttributeError:
-        print("The reference file have attritube: Data") 
+        print("The reference file have doesn't have Attribute: Data") 
         pass
 
     for i,hdul in enumerate(hduls_list):
