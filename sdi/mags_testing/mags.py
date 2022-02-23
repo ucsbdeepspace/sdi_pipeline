@@ -87,6 +87,7 @@ def photometry(x,y,aperture,sci_img):
     
     data = sci_img['SCI'].data
     gain = sci_img['SCI'].header['GAIN']
+    exp_time = sci_img['SCI'].header['EXPTIME']
 
     # Photometry
     # masking
@@ -99,7 +100,7 @@ def photometry(x,y,aperture,sci_img):
     source_pos = np.transpose((x, y))
     source_ap = CircularAperture(source_pos, r=aperture)
     source_flux = aperture_photometry(data, source_ap, error=errmap)
-    mag = -2.5 * np.log10(source_flux['aperture_sum'] * gain)
+    mag = -2.5 * np.log10(source_flux['aperture_sum'] * gain / exp_time)
     magerr = np.sqrt(((-5 / ((2 * np.log(10)) * (source_flux['aperture_sum'] * gain))) * (source_flux['aperture_sum_err'] * gain)) ** 2)
     
     return mag, magerr
