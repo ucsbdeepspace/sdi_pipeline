@@ -123,16 +123,16 @@ def delta_funcs(x, xmin=None, xmax=None):
         yield (xmax, 0)
     return zip(*vals())
 
-obs_window=delta_funcs(t,xmin = np.min(t),xmax = np.max(t))
-window_func = []
+#obs_window=delta_funcs(t,xmin = np.min(t),xmax = np.max(t))
+#window_func = []
 
-for i in range(len(t)):
-    window_func.append(next(obs_window))
+#for i in range(len(t)):
+#    window_func.append(next(obs_window))
    
-plt.figure()
-plt.xlabel('Time (MJD)')
-plt.plot(window_func[0],window_func[1])
-plt.show()
+#plt.figure()
+#plt.xlabel('Time (MJD)')
+#plt.plot(window_func[0],window_func[1])
+#plt.show()
 
 #Comparing the transform of our window function to the produced lombscargle periodogram
 window_transform = LombScargle(window_func[0],window_func[1]).autopower(minimum_frequency=1,maximum_frequency =3)
@@ -141,6 +141,8 @@ plt.plot(window_transform[0],window_transform[1])
 plt.xlabel('frequency (Hz)')
 plt.ylabel('Power')
 plt.show()
+
+
 """
 lc_SDI = lightcurve(t,mag,magerr,np.linspace(1.3,1.8,3000))
 #print(len(lc_SDI.time),np.max(lc_SDI.flux),np.min(lc_SDI.flux))
@@ -150,12 +152,31 @@ lc_SDI.phase_fold()
 #Plotting
 print(lc_SDI.period)
 print(lc_PTF.period)
-plt.errorbar(lc_PTF.phase, lc_PTF.folded_flux,yerr = magerr_PTF,fmt = 'r*')
-plt.errorbar(lc_SDI.phase, lc_SDI.folded_flux, yerr =None ,fmt = 'b*')
-#plt.plot(lc_PTF.time,lc_PTF.flux,'o')
-#plt.plot(lc_SDI.time,lc_SDI.flux,'o')
+plt.errorbar(lc_PTF.phase, lc_PTF.folded_flux,yerr = magerr_PTF,fmt = 'r*', label = 'PTF data')
+plt.errorbar(lc_SDI.phase, lc_SDI.folded_flux, yerr = magerr ,fmt = 'b*', label = 'SDI data')
+plt.legend()
+plt.title('Phase diagram for GTAnd RR Lyra star')
+plt.xlabel('Phase')
+plt.ylabel('Magnitude')
+plt.show()
+
+plt.scatter(np.linspace(1,120,120), np.sort(lc_SDI.flux))
+plt.show()
+
+plt.plot(lc_PTF.time,lc_PTF.flux,'o', label = 'PTF data')
+plt.plot(lc_SDI.time,lc_SDI.flux,'o', label = 'SDI data')
+plt.legend()
+plt.title('Lightcurve for GTAnd')
+plt.xlabel('Time (MJD)')
+plt.ylabel('Magnitude')
 plt.show()
 plt.plot(lc_SDI.freq,lc_SDI.power)
+plt.title('Lomb Scargle Periodogram (SDI)')
+plt.xlabel('Frequency')
+plt.ylabel('Power')
 plt.show()
 plt.plot(lc_PTF.freq,lc_PTF.power)
+plt.title('Lomb Scargle Periodogram (PTF)')
+plt.xlabel('Frequency')
+plt.ylabel('Power')
 plt.show()
