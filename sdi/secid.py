@@ -24,9 +24,11 @@ def secid(hduls, read_ext='SCI', write_ext=-1):
     if write_ext == -1:     #Defaults the write_ext to the read_ext
         write_ext = read_ext
     for hdul in hduls:
-        RA = hdul[read_ext].header['RA']    #Reads in RA and DEC
-        DEC = hdul[read_ext].header['DEC'] 
-        sc = SkyCoord(RA + ' ' + DEC, unit = (u.hourangle,u.deg))   #Combines RA and Dec into a skycoord with correct units
+        RA = hdul[read_ext].header['OBJRAD']    #Reads in RA and DEC
+        DEC = hdul[read_ext].header['OBJDECD']
+        RA = float(RA)
+        DEC = float(DEC)
+        sc = SkyCoord(RA, DEC, unit = u.deg)   #Combines RA and Dec into a skycoord with correct units
         SCRA = sc.ra*u.deg
         SCDEC = sc.dec*u.deg
         RAid = -1   #starts the values at -1 in case they are too small

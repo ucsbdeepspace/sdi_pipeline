@@ -127,7 +127,8 @@ ref_dec = ims[0]['REF'].data['dec']
 refcoord = SkyCoord(ref_ra,ref_dec,frame = 'icrs',unit='degree')
 
 #Then use _in_cone to see which stars are close to the target star
-target_coord = SkyCoord(11.291,41.508, frame = 'icrs', unit = 'degree')
+#target_coord = SkyCoord(11.291,41.508, frame = 'icrs', unit = 'degree')
+target_coord = SkyCoord(ims[0]['CAT'].data['ra'],ims[0]['CAT'].data['dec'], frame= 'icrs',unit='degree')
 comp_coords = find_ref(target_coord, refcoord) #in all images
 #%%
 #Find the comp_stars in the ref hdu
