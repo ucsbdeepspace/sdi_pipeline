@@ -23,7 +23,7 @@ def obj_mean(cluster):
     for source in cluster:
         if source != None:
             if not means:
-                 means = [i for i in range(len(source))]
+                 means = [0 for i in range(len(source))]
             for idx, coord in enumerate(source):
                 means[idx] += coord
     return [mean/(len(cluster)-cluster.count(None)) for mean in means]
@@ -50,7 +50,7 @@ def cluster_ratio(hduls, name="CAT", tablename="OBJ"):
 
 
 #Collate function itself
-def collate(hduls, name="CAT", tablename="OBJ", coords = ["xy"], algorithm="DBSCAN", minpts=4, eps=0.001, maxeps=np.inf, xi=0.85, collision_fix=False):
+def collate(hduls, name="CAT", tablename="OBJ", coords = ["x", "y", "flux"], algorithm="DBSCAN", minpts=4, eps=0.001, maxeps=np.inf, xi=0.85, collision_fix=False, show_collisions=False):
     """
     Clusters source data from HDULs to predict sky objects and then appends a TableHDU to each HDUL containing object/cluster data. 
     The nth index of each TableHDU for each HDUL refers to the same object with the value of the index referring to the
@@ -61,22 +61,19 @@ def collate(hduls, name="CAT", tablename="OBJ", coords = ["xy"], algorithm="DBSC
         hduls -- list of fits HDULs
         name -- name of HDU for each HDUL containing catalog of sources
         tablename -- name of TableHDU to store cluster data
-        coords -- choice of either 'xy', 'radec' or a custom list of coordinates to calculate distance between sources for clustering
+        coords -- list of dimensions to cluster sources over, multiple custom coordinates may be specified using: -c dim1 -c dim2 etc.
         algorithm -- choice of 'DBSCAN' or 'OPTICS' clustering algorithm
         minpts -- minimum cluster size
         eps -- point neighborhood radius parameter, used only in DBSCAN
         maxeps -- maximum neighborhood radius parameter, used only in OPTICS
         xi -- minimum steepness of cluster boundary, used only in OPTICS
         collision_fix -- allows for optional resolving of collisions which may result in increased runtime
+        show_collisions -- Display colliding sources and their corresponding images and clusters
     """
     hduls = [hdul for hdul in hduls]
     collisions = []
     collision_count = 0
     labels = None
-    if coords[0] == "xy":
-        coords = ("x", "y", "flux")
-    elif coords[0] == "radec":
-        coords = ("ra", "dec", "flux")
     irdf = [[] for i in range(len(coords))]
     for hdul in hduls:
         data = hdul[name].data
@@ -85,19 +82,19 @@ def collate(hduls, name="CAT", tablename="OBJ", coords = ["xy"], algorithm="DBSC
     normirdf = [_norm(array) for array in irdf]
 
     if algorithm == "DBSCAN":
-        print('Collating using {} with {} coordinates, minpts={} and eps={}'.format(algorithm, coords, minpts, eps))
+        print('\n Collating using {} with {} coordinates, minpts={} and eps={}'.format(algorithm, coords, minpts, eps))
         cores, labels = dbscan(np.vstack(normirdf).T, eps=eps, min_samples=minpts)
     elif algorithm == "OPTICS":
-        print('Collating using {} with {} coordinates, minpts={}, xi={}, and maxeps={}'.format(algorithm, coords, minpts, xi, maxeps))
+        print('\n Collating using {} with {} coordinates, minpts={}, xi={}, and maxeps={}'.format(algorithm, coords, minpts, xi, maxeps))
         labels = OPTICS(min_samples=minpts, max_eps=maxeps, xi=xi).fit(np.vstack(normirdf).T).labels_
     else:
         print('Invalid clustering method, please use "DBSCAN" or "OPTICS"')
-        return
+        return (hdul for hdul in hduls)
    
     obj_count = max(labels)
     if obj_count == -1:
         print('No clusters could be formed. Please try using more images, increasing eps, or changing algorithms.')
-        return
+        return (hdul for hdul in hduls)
 
     for i, hdul in enumerate(hduls):
         source_count = len(hdul[name].data)
@@ -108,8 +105,10 @@ def collate(hduls, name="CAT", tablename="OBJ", coords = ["xy"], algorithm="DBSC
                     cols[labels[j]] = j
                 else:
                     collision_count += 1
+                    #Store labels for collision image, cluster containing collision, and the two conflicting sources
                     collisions.append([i, labels[j], j, cols[labels[j]]])
-                    print("collision at hdul {}, object '{}' at sources {} {}".format(i, labels[j], j, cols[labels[j]]))
+                    if show_collisions:
+                        print("collision at hdul {}, object '{}' at sources {} {}".format(i, labels[j], j, cols[labels[j]]))
         if len(labels) != source_count:
             labels = labels[source_count:]
         table = [fits.Column(name='objects', format="I", array=np.array(cols), ascii=True)]
@@ -119,7 +118,7 @@ def collate(hduls, name="CAT", tablename="OBJ", coords = ["xy"], algorithm="DBSC
 
     print("{} collisions".format(collision_count))
 
-    #Dealing with collisions
+    #Dealing with collisions, takes colliding sources and keeps the source closest to the mean coordinate of their corresponding cluster.
     if collision_fix == True:
         if len(collisions) > 0:
             print("Resolving collisions")
@@ -139,6 +138,7 @@ def collate(hduls, name="CAT", tablename="OBJ", coords = ["xy"], algorithm="DBSC
             for collision in collisions:
                 sources = all_sources[collision[0]]
                 mean = means[collision[1]]
+                #Gets coords of the two colliding sources before calculating their distance from the cluster mean to determine which source is kept.
                 s1 = [sources[collision[2]][coord] for coord in coords]
                 s2 = [sources[collision[3]][coord] for coord in coords]
                 if dist_func(s1, mean) < dist_func(s2, mean):
@@ -152,17 +152,18 @@ def collate(hduls, name="CAT", tablename="OBJ", coords = ["xy"], algorithm="DBSC
 @click.option("-n", "--name", default="CAT", help="name of HDU for each HDUL containing catalog of sources")
 @click.option("-t", "--tablename", default="OBJ", help="name of TableHDU to store cluster data")
 #@click.option("-c", "--coords", default="xy", type=click.Choice(["xy", "radec"], case_sensitive=False), help="choice of either 'xy' or 'radec' coordinate system used to calculate distance between sources for clustering")
-@click.option("-c", "--coords", default=["xy"], multiple=True, help="choice of either 'xy' or 'radec' coordinate system used to calculate distance between sources for clustering")
+@click.option("-c", "--coords", default=["x", "y", "flux"], multiple=True, help="list of dimensions to cluster sources over, multiple custom coordinates may be specified using: -c dim1 -c dim2 etc.")
 @click.option("-a", "--algorithm", default="DBSCAN", type=click.Choice(["DBSCAN", "OPTICS"], case_sensitive=False), help="choice of 'DBSCAN' or 'OPTICS' clustering algorithm")
 @click.option("-p", "--minpts", default=4, help="minimum cluster size")
 @click.option("-e", "--eps", default=0.001, help="point neighborhood radius parameter, used only in DBSCAN")
 @click.option("-m", "--maxeps", default=np.inf, help="maximum neighborhood radius parameter, used only in OPTICS")
 @click.option("-x", "--xi", default=0.85, help="minimum steepness of cluster boundary, used only in OPTICS")
 @click.option("-f", "--collision_fix", default=False, help="allows for optional resolving of collisions which may result in increased runtime")
+@click.option("-s", "--show_collisions", default=False, help="Display colliding sources and their corresponding images and clusters")
 @cli.operator
 
 #collate function wrapper
-def collate_cmd(hduls, name="CAT", tablename="OBJ", coords=["xy"], algorithm="DBSCAN", minpts=4, eps=0.001, maxeps=np.inf, xi=0.85, collision_fix=False):
+def collate_cmd(hduls, name="CAT", tablename="OBJ", coords=["x", "y", "flux"], algorithm="DBSCAN", minpts=4, eps=0.001, maxeps=np.inf, xi=0.85, collision_fix=False, show_collisions=False):
     """
     Clusters source data from HDULs to predict sky objects and then appends a TableHDU to each HDUL containing object/cluster data. 
     The nth index of each TableHDU for each HDUL refers to the same object with the value of the index referring to the
@@ -173,12 +174,13 @@ def collate_cmd(hduls, name="CAT", tablename="OBJ", coords=["xy"], algorithm="DB
         hduls -- list of fits HDULs
         name -- name of HDU for each HDUL containing catalog of sources
         tablename -- name of TableHDU to store cluster data
-        coords -- choice of either 'xy', 'radec' or a custom list of coordinates to calculate distance between sources for clustering
+        coords -- list of dimensions to cluster sources over, multiple custom coordinates may be specified using: -c dim1 -c dim2 etc.
         algorithm -- clustering algorithm of choice, either DBSCAN or OPTICS
         minpts -- minimum cluster size
         eps -- point neighborhood radius parameter, used only in DBSCAN
         maxeps -- maximum neighborhood radius parameter, used only in OPTICS
         xi -- minimum steepness of cluster boundary, used only in OPTICS
         collision_fix -- allows for optional resolving of collisions
+        show_collisions -- Display colliding sources and their corresponding images and clusters
     """
-    return  collate(hduls, name, tablename, coords, algorithm, minpts, eps, maxeps, xi, collision_fix)
+    return  collate(hduls, name, tablename, coords, algorithm, minpts, eps, maxeps, xi, collision_fix, show_collisions)
