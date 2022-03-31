@@ -68,7 +68,8 @@ def align(hduls, name="SCI", ref=None):
             idx = hdul.index_of(name)
             hdul[idx].data = output
             hdul[idx].header['EXTNAME'] = ("ALGN    ")
-
+            hdul[idx].header = reference.header #hdul['sci'].header = reference.header
+            
     return (hdul for hdul in hduls_list)
 
 @cli.cli.command("align")
