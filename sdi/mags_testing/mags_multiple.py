@@ -73,7 +73,7 @@ def norm(ref_table,cat_table):
     #Making sure that all three values are present for calculating transformed mag
     gaia_mag_transformed = []
     for i,j,k in zip(range(0,len(ref_mag)),range(0,len(g_rp_g)),range(0,len(g_bp_g))):
-        if 25>ref_mag[i]>0.5  and 25>g_rp_g[j]>0.5  and 25>g_bp_g[k]>0.5:    
+        if 25>ref_mag[i]>0.5 and 25>g_rp_g[j]>0.5  and 25>g_bp_g[k]>0.5:    
             #transforming reference magnitudes to SDSS12 g
             gaia_mag_transformed.append(ref_mag[i]-0.13518+0.4625*(g_bp_g[k]-g_rp_g[j])+0.25171*(g_bp_g[k]-g_rp_g[j])**2-0.021349*(g_bp_g[k]-g_rp_g[j])**3)
         else:
@@ -175,7 +175,13 @@ for target_coord in target_coords:
     
     comp_sources = np.array(comp_sources)[c_idx]
     comp_stars = np.array(comp_stars)[c_idx]
-    
+    try:
+        #For multiple reference stars
+        mag_temp = [norm(i,j) for i,j in zip(comp_stars,comp_sources)]
+        mag_temp = [m[0] for m in mag_temp]
+    except TypeError:
+        mag_temp = norm(comp_stars,comp_sources)
+        mag_temp = [m[0] for m in mag_temp]
     #%%
     target_mag = []
     target_magerr = []
@@ -189,31 +195,22 @@ for target_coord in target_coords:
         except IndexError:
             t = sci_ims[im]['SCI'].header['OBSMJD']
             ts.append(np.array(t))
-        #For multiple ref stars
-        try:
-            #gaia_mag_transformed, gaia_mag_err, gaia_flux_transformed, gaia_flux_err
+        try:    
+            #For multiple ref stars
+            target_inst_mag = photometry(target['x'][im],target['y'][im], target['a'][im], sci_ims[im])[0][0]
             ref_mag = [] #magnitudes for the reference stars in first image
             bright_idx = []
             ref_magerr = 0.16497
-            for i in range(0,len(comp_stars)):
-                try:
-                    mag_temp = norm(comp_stars[i],comp_sources[i])[im] #This can be made better, normalize once outside the for loop and then iterate
-                    import pdb;
-                    pdb.set_trace()
-                    if mag_temp < 20: #This is just for GTAnd. This will change for other stars based on the target star's magnitude
-                        ref_mag.append(mag_temp)
-                        bright_idx.append(i)
-                    else:
-                        pass
-                except IndexError:
-                    mag_temp = norm(comp_stars[i],comp_sources[i])[im] #This can be made better, normalize once outside the for loop and then iterate
-                    if mag_temp > 20:
-                        print("Warning! Reference star magnitude dimmer than magnitudes detectable by the pipeline")
+            for i in range(0,len(mag_temp)):
+                if mag_temp[i] < np.abs(target_inst_mag):
+                    ref_mag.append(mag_temp[i])
+                    bright_idx.append(i)
+                else:
+                    pass
             comp_sources_new = np.array(comp_sources)[bright_idx]
             #Using 'a' as a sloppy alternative to aperture. Maybe look into sep.kron_radius or flux_radius. aperture is a radius.
             #Have to select index [0] for each mag to get just the numerical value without the description of the column object
             
-            #For multiple ref stars
             
             #!TODO: Currently, comp_sources still have zeros? np.mean will not work anyway
             instrumental_mag = []
@@ -222,14 +219,12 @@ for target_coord in target_coords:
                 arr = photometry(comp_sources_new[i]['x'][im],comp_sources_new[i]['y'][im], comp_sources_new[i]['a'][im], sci_ims[im])
                 instrumental_mag.append(arr[0][0])
                 in_magerr.append(arr[1][0])
-        
+
             #Performing the linear fit
             #First find all places where there are non-nan values:
             idx = np.where([np.isnan(r)==False for r in ref_mag])[0]
             x = [instrumental_mag[i] for i in idx]
             y = [ref_mag[i] for i in idx]
-            import pdb;
-            #pdb.set_trace()
             fit, sum_sq_resid, rank, singular_values, rcond = np.polyfit(x[1:], y[1:], 1, full=True)
             fit_fn = np.poly1d(fit)
             residuals = fit_fn(x)-y
@@ -238,29 +233,19 @@ for target_coord in target_coords:
             #plt.show()        
             # fit_fn is now a function which takes in x and returns an estimate for y, 
             #Use the fit from above to calculate the target magnitude
-            target_inst_mag = photometry(target['x'][im],target['y'][im], target['a'][im], sci_ims[im])[0][0]
             target_mag.append(fit_fn(target_inst_mag))
             target_magerr.append(np.std(residuals))
         
-        except ValueError:
-            #!TODO: correct error prop
-            #For one ref star, take the star, find the correction, and apply it to the rest of the image
-            instrumental_mag = photometry(comp_sources[0]['x'][im],comp_sources[0]['y'][im], comp_sources[0]['a'][im], sci_ims[im])[0][0]
-            in_magerr = photometry(comp_sources[0]['x'][im], comp_sources[0]['y'][im], comp_sources[0]['a'][im], sci_ims[im])[1][0]
-            corr = np.abs(instrumental_mag)-ref_mag[0]
-            target_inst_mag = photometry(target['x'][im],target['y'][im], target['a'][im], sci_ims[im])[0][0]
-            target_mag.append(corr + target_inst_mag)
-            target_magerr.append(in_magerr)
         except TypeError:
             #!TODO: correct error prop
             #For one ref star, take the star, find the correction, and apply it to the rest of the image
             instrumental_mag = photometry(comp_sources[0]['x'][im],comp_sources[0]['y'][im], comp_sources[0]['a'][im], sci_ims[im])[0][0]
             in_magerr = photometry(comp_sources[0]['x'][im], comp_sources[0]['y'][im], comp_sources[0]['a'][im], sci_ims[im])[1][0]
-            corr = np.abs(instrumental_mag)-ref_mag[0]
+            corr = np.abs(instrumental_mag)-ref_mag
             target_inst_mag = photometry(target['x'][im],target['y'][im], target['a'][im], sci_ims[im])[0][0]
             target_mag.append(corr + target_inst_mag)
             target_magerr.append(in_magerr)
-    #%%
+    
     rows = zip(target_mag,target_magerr, ts)
     print('Done!')
     import csv

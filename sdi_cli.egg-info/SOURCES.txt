@@ -1,0 +1,8 @@
+README.md
+setup.py
+sdi_cli.egg-info/PKG-INFO
+sdi_cli.egg-info/SOURCES.txt
+sdi_cli.egg-info/dependency_links.txt
+sdi_cli.egg-info/entry_points.txt
+sdi_cli.egg-info/requires.txt
+sdi_cli.egg-info/top_level.txt
