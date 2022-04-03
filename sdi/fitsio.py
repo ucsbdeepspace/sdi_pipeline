@@ -27,6 +27,15 @@ def write(hduls, directory, format_):
     Writes all given hduls into the directory specified
     """
     import os
+
+    #check if directory exists
+    isFile = os.path.isfile(directory)
+    print(isFile)
+
+    if isFile == False:
+        os.mkdir(directory)
+        print('directory was not present, now made at' + directory)
+
     for i, h in enumerate(hduls):
         path = os.path.join(directory, format_.format(number=i))
         click.echo(f"writing hdul to {path}")
