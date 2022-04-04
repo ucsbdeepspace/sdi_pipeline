@@ -163,10 +163,10 @@ for target_coord in target_coords:
     #Remove all the images for which the target star could not be found by removing places that have zeroes
     t_idx = np.where(target['x']!=0)
     target = target[t_idx]
-    #next remove those indices in all the comp stars and sources
+    #next remove those indices in all the comp stars and sources, and remove those images
     comp_stars = [comp_stars[i][t_idx] for i in range(0,len(comp_stars))]
     comp_sources = [comp_sources[i][t_idx] for i in range(0,len(comp_sources))]
-    
+    ims_new = [ims[i] for i in t_idx[0]]
     #Now check for zero x, y, and a in the comp stars. If there are zero values, remove the comp source entirely
     c_idx = []
     for i in range(0,len(comp_sources)):
@@ -187,7 +187,7 @@ for target_coord in target_coords:
     target_magerr = []
     ts = []
     #%%
-    for im in range(0,len(ims)):
+    for im in range(0,len(ims_new)):
         try:
             t = sci_ims[im][0].header['DATE-OBS']
             times = Time(t)
@@ -197,12 +197,12 @@ for target_coord in target_coords:
             ts.append(np.array(t))
         try:    
             #For multiple ref stars
-            target_inst_mag = photometry(target['x'][im],target['y'][im], target['a'][im], sci_ims[im])[0][0]
+            #target_inst_mag = photometry(target['x'][im],target['y'][im], target['a'][im], sci_ims[im])[0][0]
             ref_mag = [] #magnitudes for the reference stars in first image
             bright_idx = []
             ref_magerr = 0.16497
             for i in range(0,len(mag_temp)):
-                if mag_temp[i] < np.abs(target_inst_mag):
+                if mag_temp[i]<20: #20 is the lowest magnitude our pipeline can detect
                     ref_mag.append(mag_temp[i])
                     bright_idx.append(i)
                 else:
@@ -233,6 +233,7 @@ for target_coord in target_coords:
             #plt.show()        
             # fit_fn is now a function which takes in x and returns an estimate for y, 
             #Use the fit from above to calculate the target magnitude
+            target_inst_mag = photometry(target['x'][im],target['y'][im], target['a'][im], sci_ims[im])[0][0]
             target_mag.append(fit_fn(target_inst_mag))
             target_magerr.append(np.std(residuals))
         
