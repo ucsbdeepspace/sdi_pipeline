@@ -177,16 +177,12 @@ for target_coord in target_coords:
     comp_stars = np.array(comp_stars)[c_idx]
     try:
         #For multiple reference stars
-        mag_temp = [norm(i,j) for i,j in zip(comp_stars,comp_sources)]
-        mag_temp = [m[0] for m in mag_temp]
+        mag_temp = [norm(i,j)[0] for i,j in zip(comp_stars,comp_sources)]
     except TypeError:
-        mag_temp = norm(comp_stars,comp_sources)
-        mag_temp = [m[0] for m in mag_temp]
-    #%%
+        mag_temp = norm(comp_stars,comp_sources)[0]
     target_mag = []
     target_magerr = []
     ts = []
-    #%%
     for im in range(0,len(ims_new)):
         try:
             t = sci_ims[im][0].header['DATE-OBS']
@@ -197,29 +193,28 @@ for target_coord in target_coords:
             ts.append(np.array(t))
         try:    
             #For multiple ref stars
-            #target_inst_mag = photometry(target['x'][im],target['y'][im], target['a'][im], sci_ims[im])[0][0]
-            ref_mag = [] #magnitudes for the reference stars in first image
+            #!TODO: Currently, comp_sources still have zeros? np.mean will not work anyway
+            target_inst_mag = photometry(target['x'][im],target['y'][im], target['a'][im], sci_ims[im])[0][0]
+            instrumental_mag = []
+            in_magerr = []
+            for i in range(0,len(comp_sources)):
+                arr = photometry(comp_sources[i]['x'][im],comp_sources[i]['y'][im], comp_sources[i]['a'][im], sci_ims[im])
+                instrumental_mag.append(arr[0][0])
+                in_magerr.append(arr[1][0])
+            
             bright_idx = []
             ref_magerr = 0.16497
-            for i in range(0,len(mag_temp)):
-                if mag_temp[i]<20: #20 is the lowest magnitude our pipeline can detect
-                    ref_mag.append(mag_temp[i])
+            for i in range(0,len(instrumental_mag)):
+                if instrumental_mag[i] < target_inst_mag: #20 is the lowest magnitude our pipeline can detect
                     bright_idx.append(i)
                 else:
                     pass
-            comp_sources_new = np.array(comp_sources)[bright_idx]
+            instrumental_mag = np.array(instrumental_mag)[bright_idx]
+            ref_mag = np.array(mag_temp)[bright_idx]
             #Using 'a' as a sloppy alternative to aperture. Maybe look into sep.kron_radius or flux_radius. aperture is a radius.
             #Have to select index [0] for each mag to get just the numerical value without the description of the column object
             
             
-            #!TODO: Currently, comp_sources still have zeros? np.mean will not work anyway
-            instrumental_mag = []
-            in_magerr = []
-            for i in range(0,len(comp_sources_new)):
-                arr = photometry(comp_sources_new[i]['x'][im],comp_sources_new[i]['y'][im], comp_sources_new[i]['a'][im], sci_ims[im])
-                instrumental_mag.append(arr[0][0])
-                in_magerr.append(arr[1][0])
-
             #Performing the linear fit
             #First find all places where there are non-nan values:
             idx = np.where([np.isnan(r)==False for r in ref_mag])[0]
@@ -228,12 +223,12 @@ for target_coord in target_coords:
             fit, sum_sq_resid, rank, singular_values, rcond = np.polyfit(x[1:], y[1:], 1, full=True)
             fit_fn = np.poly1d(fit)
             residuals = fit_fn(x)-y
-            #fig=plt.figure(figsize=(18, 16), dpi= 80, facecolor='w', edgecolor='k')
-            #plt.plot(x,y, 'yo', x, fit_fn(x), '--k')
-            #plt.show()        
+            fig=plt.figure(figsize=(18, 16), dpi= 80, facecolor='w', edgecolor='k')
+            plt.plot(x,y, 'yo', x, fit_fn(x), '--k')
+            plt.show()        
             # fit_fn is now a function which takes in x and returns an estimate for y, 
             #Use the fit from above to calculate the target magnitude
-            target_inst_mag = photometry(target['x'][im],target['y'][im], target['a'][im], sci_ims[im])[0][0]
+            #target_inst_mag = photometry(target['x'][im],target['y'][im], target['a'][im], sci_ims[im])[0][0]
             target_mag.append(fit_fn(target_inst_mag))
             target_magerr.append(np.std(residuals))
         
