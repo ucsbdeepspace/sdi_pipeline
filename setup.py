@@ -11,6 +11,13 @@ except ModuleNotFoundError:
     import sys
     sys.exit("setuptools_rust not found, sdi requires setuptools_rust for installation.\n Please try '$pip3 install setuptools_rust'.")
 
+try:
+    import sklearn
+except ModuleNotFoundError:
+    import sys
+    sys.exit("sklearn not found, sdi requires sklearn for installation.\n Please try '$pip3 install sklearn'.")
+
+
 
 setup(
     name="sdi-cli",
