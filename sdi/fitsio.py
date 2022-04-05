@@ -29,7 +29,7 @@ def write(hduls, directory, format_):
     import os
 
     #check if directory exists
-    isFile = os.path.isfile(directory)
+    isFile = os.path.isdir(directory)
     print(isFile)
 
     if isFile == False:
