@@ -7,6 +7,7 @@ import os
 import unittest
 import click
 from click.testing import CliRunner
+from sklearn.cluster import dbscan, OPTICS
 from astropy.io import fits
 import sdi
 import glob
