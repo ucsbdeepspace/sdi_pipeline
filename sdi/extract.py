@@ -11,6 +11,7 @@ from astropy.io import fits
 import sep
 from . import _cli as cli
 
+
 def extract(hduls, stddev_thresh=3.0, read_ext="SUB", write_ext="XRT"):
     """
     Uses sep to find sources on a residual image(s)
@@ -27,18 +28,22 @@ def extract(hduls, stddev_thresh=3.0, read_ext="SUB", write_ext="XRT"):
     for hdul in hduls:
         data = hdul[read_ext].data
         bkg = None
-        try: 
+        try:
             bkg = sep.Background(data)
         except:
             data = data.byteswap().newbyteorder()
             bkg = sep.Background(data)
-        sources = sep.extract(data - bkg.back(), bkg.globalrms * stddev_thresh,
-                       segmentation_map=False)
-        #Convert xy to RA/DEC in ICRS
+        sources = sep.extract(
+            data - bkg.back(), bkg.globalrms * stddev_thresh, segmentation_map=False
+        )
+        # Convert xy to RA/DEC in ICRS
         from astropy import wcs
         from astropy.coordinates import SkyCoord
-        coords = wcs.utils.pixel_to_skycoord(sources['x'],sources['y'],wcs.WCS(hdul[read_ext].header),origin = 0)
-        coords_icrs = SkyCoord(coords,frame = 'icrs')
+
+        coords = wcs.utils.pixel_to_skycoord(
+            sources["x"], sources["y"], wcs.WCS(hdul[read_ext].header), origin=0
+        )
+        coords_icrs = SkyCoord(coords, frame="icrs")
         ra = coords_icrs.ra.degree
         dec = coords_icrs.dec.degree
         extname = write_ext
@@ -49,29 +54,51 @@ def extract(hduls, stddev_thresh=3.0, read_ext="SUB", write_ext="XRT"):
             extname = write_ext[0]
         except (ValueError, TypeError):
             pass
-        cat = fits.BinTableHDU(data=sources, header=header,
-                                     name=extname, ver=extver)
-        print('name = ',extname)
+        cat = fits.BinTableHDU(data=sources, header=header, name=extname, ver=extver)
+        print("name = ", extname)
         out_cols = cat.data.columns
-        new_cols = fits.ColDefs([fits.Column(name = 'ra',format = 'D',array=ra),fits.Column(name = 'dec', format = 'D', array=dec)])
-        new_table = fits.BinTableHDU(header = header, name = extname, ver=extver).from_columns(out_cols + new_cols)
-        new_hdu = fits.BinTableHDU(new_table.data, header = header, name = extname, ver = extver)
+        new_cols = fits.ColDefs(
+            [
+                fits.Column(name="ra", format="D", array=ra),
+                fits.Column(name="dec", format="D", array=dec),
+            ]
+        )
+        new_table = fits.BinTableHDU(
+            header=header, name=extname, ver=extver
+        ).from_columns(out_cols + new_cols)
+        new_hdu = fits.BinTableHDU(
+            new_table.data, header=header, name=extname, ver=extver
+        )
         hdul.append(new_hdu)
         yield hdul
 
-@cli.cli.command("extract")
-@click.option("-t", "--threshold", default=3.0,
-              help="A threshold value to use for source extraction in terms of"
-              "the number of stddevs above the background noise.", type=float)
-@click.option("-r", "--read_ext", default="SUB",
-              help="An index number or ext name that identifies the data in"
-              "input hduls that you want source extraction for. For LCO, this "
-              "is 1 or SUB.") ##We might want to re-word this now.
-@click.option("-w", "--write_ext", default=("XRT", 1),
-              help="An extension name and extension version that will identify"
-              "the HDUL that the resulting BinTable gets written to. Default"
-              "is `XRT 1`", type=(str, int))
 
+@cli.cli.command("extract")
+@click.option(
+    "-t",
+    "--threshold",
+    default=3.0,
+    help="A threshold value to use for source extraction in terms of"
+    "the number of stddevs above the background noise.",
+    type=float,
+)
+@click.option(
+    "-r",
+    "--read_ext",
+    default="SUB",
+    help="An index number or ext name that identifies the data in"
+    "input hduls that you want source extraction for. For LCO, this "
+    "is 1 or SUB.",
+)  ##We might want to re-word this now.
+@click.option(
+    "-w",
+    "--write_ext",
+    default=("XRT", 1),
+    help="An extension name and extension version that will identify"
+    "the HDUL that the resulting BinTable gets written to. Default"
+    "is `XRT 1`",
+    type=(str, int),
+)
 @cli.operator
 def extract_cmd(hduls, threshold, read_ext, write_ext):
     """

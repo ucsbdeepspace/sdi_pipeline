@@ -11,8 +11,9 @@ from astropy.io import fits
 import sdi
 import glob
 
+
 class TestCollate(unittest.TestCase):
-    
+
     path = os.path.join(os.path.dirname(__file__), "fixtures/extractedsims")
 
     @classmethod
@@ -33,18 +34,22 @@ class TestCollate(unittest.TestCase):
             self.assertIsInstance(o, fits.HDUList, "Output is not type fits.HDUList")
 
     def test_length(self):
-        self.assertEqual(len(TestCollate.output), 10, "Did not collate correct number of HDULs from fixtures/extractedsims")
+        self.assertEqual(
+            len(TestCollate.output),
+            10,
+            "Did not collate correct number of HDULs from fixtures/extractedsims",
+        )
 
     def test_output(self):
         for t, o in zip(TestCollate.true_output, TestCollate.output):
             compare = fits.FITSDiff(fits.HDUList(t), fits.HDUList(o))
-            self.assertEqual(compare.identical, True, compare.report(fileobj = None))
+            self.assertEqual(compare.identical, True, compare.report(fileobj=None))
 
     def test_click(self):
         runner = CliRunner()
-        result = runner.invoke(sdi._collate_cmd, ['-c', 'xy'])
+        result = runner.invoke(sdi._collate_cmd, ["-c", "xy"])
         assert result.exit_code == 0
+
 
 if __name__ == "__main__":
     unittest.main()
-

@@ -9,6 +9,7 @@ from photutils import Background2D, detect_threshold, detect_sources, source_pro
 import click
 from . import _cli as cli
 
+
 def snr(hduls, name="SCI"):
     """
     calculates the signal-to-noise ratio of a fits file
@@ -18,7 +19,7 @@ def snr(hduls, name="SCI"):
         data = hdul[name].data
 
         # identify background rms
-        boxsize = (data.shape)
+        boxsize = data.shape
         bkg = Background2D(data, boxsize)
         bkg_mean_rms = np.mean(bkg.background_rms)
 
@@ -27,10 +28,12 @@ def snr(hduls, name="SCI"):
 
         # set threshold and detect sources, threshold 5*std above background
         threshold = detect_threshold(data=new_data, nsigma=5.0, background=0.0)
-        SegmentationImage = detect_sources(data=new_data, threshold=threshold, npixels=10)
+        SegmentationImage = detect_sources(
+            data=new_data, threshold=threshold, npixels=10
+        )
 
         SourceCatalog = source_properties(new_data, SegmentationImage)
-        columns = ['id', 'xcentroid', 'ycentroid', 'source_sum']
+        columns = ["id", "xcentroid", "ycentroid", "source_sum"]
 
         source_max_values = SourceCatalog.max_value
         avg_source_max_values = np.mean(source_max_values)
@@ -38,15 +41,15 @@ def snr(hduls, name="SCI"):
         # calculate signal to noise ratio
         signal = avg_source_max_values
         noise = bkg_mean_rms
-        SNR = (signal)/(noise)
-        hdul["CAT"].header.append(('SNR', SNR, "signal to noise ratio"))
+        SNR = (signal) / (noise)
+        hdul["CAT"].header.append(("SNR", SNR, "signal to noise ratio"))
 
     return (hdul for hdul in hduls)
+
 
 @cli.cli.command("snr")
 @click.option("-n", "--name", default="SCI", help="The HDU to calculate for")
 @cli.operator
-
 def snr_cmd(hduls, name="SCI"):
     """
     snr function wrapper
