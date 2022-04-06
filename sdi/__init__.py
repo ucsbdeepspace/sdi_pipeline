@@ -9,7 +9,7 @@ from .extract import extract
 from .ref import ref
 from .secid import secid
 from .collate import collate
-from .snr_function import snr #New
+from .snr_function import snr  # New
 from . import test
 
 # in order to test click commands
@@ -20,7 +20,7 @@ from .combine import combine_cmd as _combine_cmd
 from .extract import extract_cmd as _extract_cmd
 from .subtract import subtract_cmd as _subtract_cmd
 from .collate import collate_cmd as _collate_cmd
-from .snr_function import snr_cmd as _snr_cmd #New
+from .snr_function import snr_cmd as _snr_cmd  # New
 from . import test_cmd
 
 _scidir = os.path.join(os.path.dirname(__file__), "test/fixtures/science")

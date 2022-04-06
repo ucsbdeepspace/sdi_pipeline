@@ -16,10 +16,23 @@ from astropy import wcs
 import warnings
 
 # define specific columns so we don't get dtype issues from the chaff
-COLUMNS = ["source_id", "ra", "ra_error", "dec", "dec_error",
-           "phot_g_mean_flux", "phot_g_mean_flux_error", "phot_g_mean_mag",
-           "phot_rp_mean_flux", "phot_rp_mean_flux_error", "phot_rp_mean_mag",
-           "phot_bp_mean_flux","phot_bp_mean_flux_error","phot_bp_mean_mag"]
+COLUMNS = [
+    "source_id",
+    "ra",
+    "ra_error",
+    "dec",
+    "dec_error",
+    "phot_g_mean_flux",
+    "phot_g_mean_flux_error",
+    "phot_g_mean_mag",
+    "phot_rp_mean_flux",
+    "phot_rp_mean_flux_error",
+    "phot_rp_mean_mag",
+    "phot_bp_mean_flux",
+    "phot_bp_mean_flux_error",
+    "phot_bp_mean_mag",
+]
+
 
 def _in_cone(coord: SkyCoord, cone_center: SkyCoord, cone_radius: u.degree):
     """
@@ -27,7 +40,8 @@ def _in_cone(coord: SkyCoord, cone_center: SkyCoord, cone_radius: u.degree):
     cone_radius
     """
     d = (coord.ra - cone_center.ra) ** 2 + (coord.dec - cone_center.dec) ** 2
-    return d < (cone_radius ** 2)
+    return d < (cone_radius**2)
+
 
 def ref(hduls, read_ext=-1, write_ext="REF", threshold=0.001):
     """
@@ -47,6 +61,7 @@ def ref(hduls, read_ext=-1, write_ext="REF", threshold=0.001):
     # This import is here because the GAIA import slows down `import sdi`
     # substantially; we don't want to import it unless we need it
     from astroquery.gaia import Gaia
+
     Gaia.ROW_LIMIT = -1
 
     queried_coords = []
@@ -54,27 +69,34 @@ def ref(hduls, read_ext=-1, write_ext="REF", threshold=0.001):
     cached_table = np.array([])
 
     # an arbitrary cone search radius, separate from the threshold value
-    cone_radius = u.Quantity(0.05 , u.deg)
+    cone_radius = u.Quantity(0.05, u.deg)
     # we need this to track blanks till we know the dtype
     initial_empty = 0
     # An adaptive method of obtaining the threshold value
     for hdul in hduls:
-        threshold = max(hdul[read_ext].data["a"])*hdul['ALGN'].header['PIXSCALE']/3600
+        threshold = (
+            max(hdul[read_ext].data["a"]) * hdul["ALGN"].header["PIXSCALE"] / 3600
+        )
         threshold = u.Quantity(threshold, u.deg)
         ra = hdul[read_ext].data["RA"]
         dec = hdul[read_ext].data["DEC"]
         sources = hdul[read_ext].data
         output_table = np.array([])
-        coordinates = SkyCoord(ra,dec,unit="deg")
+        coordinates = SkyCoord(ra, dec, unit="deg")
 
         for coord in coordinates:
             ########### Query an area if we have not done so already ###########
             # Check to see if we've queried the area
-            if not any((_in_cone(coord, query, cone_radius - 2 * threshold) \
-                        for query in queried_coords)):
+            if not any(
+                (
+                    _in_cone(coord, query, cone_radius - 2 * threshold)
+                    for query in queried_coords
+                )
+            ):
                 # we have never queried the area. Do a GAIA cone search
-                data = Gaia.cone_search_async(coord, cone_radius, columns=COLUMNS,
-                                              output_format="csv").get_results()
+                data = Gaia.cone_search_async(
+                    coord, cone_radius, columns=COLUMNS, output_format="csv"
+                ).get_results()
                 data = data.as_array()
                 # add the cache table to the data
                 if len(cached_table):
@@ -83,8 +105,9 @@ def ref(hduls, read_ext=-1, write_ext="REF", threshold=0.001):
                     cached_table = data.data
                 for d in data:
                     # construct Coord objects for the new data
-                    cached_coords.append(SkyCoord(d["ra"], d["dec"],
-                                         unit=(u.deg, u.deg)))
+                    cached_coords.append(
+                        SkyCoord(d["ra"], d["dec"], unit=(u.deg, u.deg))
+                    )
                 # note that we have now queried this area
                 queried_coords.append(coord)
 
@@ -98,8 +121,12 @@ def ref(hduls, read_ext=-1, write_ext="REF", threshold=0.001):
                         output_table = np.hstack((output_table, np.copy(ct)))
                     else:
                         output_table = np.copy(ct)
-                        output_table = np.hstack((np.empty(shape=initial_empty,
-                                       dtype=output_table.dtype), output_table))
+                        output_table = np.hstack(
+                            (
+                                np.empty(shape=initial_empty, dtype=output_table.dtype),
+                                output_table,
+                            )
+                        )
                     appended = True
                     break
                 else:
@@ -118,23 +145,33 @@ def ref(hduls, read_ext=-1, write_ext="REF", threshold=0.001):
         extname = write_ext
         header = fits.Header([fits.Card("HISTORY", "From the GAIA remote db")])
         # replace nan values with 0.0
-        for i,elm in enumerate(output_table):
-            for j,val in enumerate(elm):
+        for i, elm in enumerate(output_table):
+            for j, val in enumerate(elm):
                 if np.isnan(val):
                     elm[j] = 0.0
         # only append the hdul if output_table is not empty
         if len(output_table):
-            hdul.append(fits.BinTableHDU(data=output_table, header=header, name=extname))
+            hdul.append(
+                fits.BinTableHDU(data=output_table, header=header, name=extname)
+            )
         else:
-            warnings.warn(f"empty reference table created, no stars found in the database corresponding to {hdul}")
-        yield hdul # not sure if I should be yielding hdul even if output_table is empty
+            warnings.warn(
+                f"empty reference table created, no stars found in the database corresponding to {hdul}"
+            )
+        yield hdul  # not sure if I should be yielding hdul even if output_table is empty
     return
+
 
 @cli.cli.command("ref")
 @click.option("-r", "--read-ext", default="CAT", help="The HDU to match")
 @click.option("-w", "--write-ext", default="REF", help="The HDU to load ref into")
-@click.option("-t", "--threshold", default=0.001, type=float,
-              help="The threshold in degrees for a cone search")
+@click.option(
+    "-t",
+    "--threshold",
+    default=0.001,
+    type=float,
+    help="The threshold in degrees for a cone search",
+)
 @cli.operator
 def ref_cmd(hduls, read_ext=-1, write_ext="REF", threshold=0.001):
     """

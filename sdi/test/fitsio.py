@@ -13,6 +13,7 @@ import tempfile
 import getpass
 from datetime import datetime
 
+
 class TestRead(unittest.TestCase):
 
     path = os.path.join(os.path.dirname(__file__), "fixtures/science")
@@ -27,8 +28,14 @@ class TestRead(unittest.TestCase):
             hdul.close()
 
     def test_length(self):
-        self.assertEqual(len(self.output), 10, "Did not read the correct number of HDULs in directroy, fixtures/science")
-        self.assertEqual(len(self.noutput), 0, "Did not read zero HDULs in from empty directory.")
+        self.assertEqual(
+            len(self.output),
+            10,
+            "Did not read the correct number of HDULs in directroy, fixtures/science",
+        )
+        self.assertEqual(
+            len(self.noutput), 0, "Did not read zero HDULs in from empty directory."
+        )
 
     def test_type(self):
         for o in self.output:
@@ -36,11 +43,11 @@ class TestRead(unittest.TestCase):
 
     def test_click(self):
         runner = CliRunner()
-        result = runner.invoke(sdi._read_cmd, ['-d', 'filePath'])
+        result = runner.invoke(sdi._read_cmd, ["-d", "filePath"])
         assert result.exit_code == 0
 
-class TestWrite(unittest.TestCase):
 
+class TestWrite(unittest.TestCase):
     @classmethod
     def setUpClass(self):
         ## Creates a unique dir to write to
@@ -49,8 +56,14 @@ class TestWrite(unittest.TestCase):
         self.dirName = os.path.join(self.tmpdir.name, self.testDir)
         os.mkdir(self.dirName)
         self.h = sdi.read(os.path.join(os.path.dirname(__file__), "fixtures/science"))
-        self.output = sdi.write(self.h, os.path.join(os.path.dirname(__file__), self.dirName), "{number}.fits")
-        self.paths = glob.glob("{}/*.fits*".format(os.path.join(os.path.dirname(__file__), self.dirName)))
+        self.output = sdi.write(
+            self.h,
+            os.path.join(os.path.dirname(__file__), self.dirName),
+            "{number}.fits",
+        )
+        self.paths = glob.glob(
+            "{}/*.fits*".format(os.path.join(os.path.dirname(__file__), self.dirName))
+        )
 
     @classmethod
     def tearDownClass(self):
@@ -63,12 +76,17 @@ class TestWrite(unittest.TestCase):
             self.assertIsInstance(o, fits.HDUList, "Did not write type fits.HDUList")
 
     def test_dir(self):
-        self.assertEqual(len(self.paths), 10,f"Did not write the correct number of HDULs to directory {self.paths}")
+        self.assertEqual(
+            len(self.paths),
+            10,
+            f"Did not write the correct number of HDULs to directory {self.paths}",
+        )
 
     def test_click(self):
         runner = CliRunner()
-        result = runner.invoke(sdi._write_cmd, ['-d', 'filePath', '-f', 'format'])
+        result = runner.invoke(sdi._write_cmd, ["-d", "filePath", "-f", "format"])
         assert result.exit_code == 0
+
 
 if __name__ == "__main__":
     unittest.main()

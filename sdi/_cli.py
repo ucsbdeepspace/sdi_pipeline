@@ -5,11 +5,13 @@ cli -- this module chains together pipeline commands
 from functools import update_wrapper
 import click
 
+
 @click.group(chain=True)
 def cli():
     """
     Chains together pipeline commands.
     """
+
 
 @cli.resultcallback()
 def run_pipeline(operators):
@@ -26,6 +28,7 @@ def run_pipeline(operators):
         # do necessary things on overall outputs
         pass
 
+
 def operator(func):
     """
     Decorator which wraps commands so that they return functions after being
@@ -33,14 +36,17 @@ def operator(func):
     All of the returned functions are passed as an iterable
     into run_pipeline.
     """
+
     def new_func(*args, **kwargs):
         def operator(hduls):
             # args and kwargs are subcommand-specific
             return func(hduls, *args, **kwargs)
+
         return operator
 
     # basically return new_func, but better
     return update_wrapper(new_func, func)
+
 
 def generator(func):
     """
@@ -48,7 +54,9 @@ def generator(func):
     opening the hduls.
     Works with sub-funcs that do not have 'hduls' as the first argument.
     """
+
     def new_func(hduls, *args, **kwargs):
         yield from hduls
         yield from func(*args, **kwargs)
+
     return operator(update_wrapper(new_func, func))
