@@ -231,7 +231,12 @@ for im in range(0,len(ims)):
         target_inst_mag = photometry(target['x'][im],target['y'][im], target['a'][im], sci_ims[im])[0][0]
         target_mag.append(fit_fn(target_inst_mag))
         target_magerr.append(np.std(residuals))
-    
+        
+        #defining the parameter error for the linear fit
+        coeff, cov = np.polyfit(x,y,1,cov = true)
+        parameter__err = np.sqrt(np.diag(cov)) 
+
+
     except ValueError:
         #!TODO: correct error prop
         #For one ref star, take the star, find the correction, and apply it to the rest of the image
@@ -241,6 +246,11 @@ for im in range(0,len(ims)):
         target_inst_mag = photometry(target['x'][im],target['y'][im], target['a'][im], sci_ims[im])[0][0]
         target_mag.append(corr + target_inst_mag)
         target_magerr.append(in_magerr)
+        #use the parameter error to find the error in this magnitude, need to know what the final value that gets spit out is defined as, think it is target mag. need other sigma
+        #def error_prop(target_mag, sigma_mag, fit_slope, parameter_err):
+        #   return np.sqrt((target_mag*parameter_err)**2+(fit_slope*sigma_mag)**2)
+        #target_magerr = error_prop(...
+
 #%%
 rows = zip(target_mag,target_magerr, ts)
 
