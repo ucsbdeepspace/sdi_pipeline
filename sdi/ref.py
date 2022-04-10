@@ -75,7 +75,7 @@ def ref(hduls, read_ext=-1, write_ext="REF", threshold=0.001):
                                               output_format="csv").get_results()
                 data = data.as_array()
                 # add the cache table to the data
-                if len(cached_table):
+                if not cached_table:
                     cached_table = np.hstack((cached_table, data.data))
                 else:
                     cached_table = data.data
@@ -91,7 +91,7 @@ def ref(hduls, read_ext=-1, write_ext="REF", threshold=0.001):
                 # look through the cache to find a match
                 if _in_cone(cs, coord, threshold):
                     # if we find a match, copy it to the output table
-                    if len(output_table):
+                    if not output_table:
                         output_table = np.hstack((output_table, np.copy(ct)))
                     else:
                         output_table = np.copy(ct)
@@ -104,7 +104,7 @@ def ref(hduls, read_ext=-1, write_ext="REF", threshold=0.001):
 
             ########### Add a blank if we didn't find anything #################
             if not appended:
-                if len(output_table):
+                if not output_table:
                     # If we do not find one cached, then add a blank
                     blank = np.empty(shape=0, dtype=output_table.dtype)
                     output_table = np.hstack((output_table, blank))
@@ -120,7 +120,7 @@ def ref(hduls, read_ext=-1, write_ext="REF", threshold=0.001):
                 if np.isnan(val):
                     elm[j] = 0.0
         # only append the hdul if output_table is not empty
-        if len(output_table):
+        if not output_table:
             hdul.append(fits.BinTableHDU(data=output_table, header=header, name=extname))
         else:
             warnings.warn(f"empty reference table created, no stars found in the database corresponding to {hdul}")
