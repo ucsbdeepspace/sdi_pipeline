@@ -7,6 +7,7 @@ Created on Tue Jan 25 20:52:51 2022
 
 import numpy as np
 import matplotlib.pyplot as plt
+import sep
 from astropy.io import fits
 from astropy import units as u
 from astropy.coordinates import SkyCoord
@@ -14,7 +15,6 @@ from photutils.aperture import CircularAperture
 from photutils.aperture import aperture_photometry
 from glob import glob
 from photutils.segmentation import make_source_mask
-from astropy.stats import sigma_clipped_stats
 from astropy.time import Time
 #Inter script functions
 from collate import hdultocluster, cluster_search_radec
@@ -83,23 +83,28 @@ def norm(ref_table,cat_table):
     
     return gaia_mag_transformed
 
-def photometry(x,y,aperture,sci_img):
-    
+
+def photometry(x,y,aperture,sci_iimg):
+    '''
+    This function calculates the magnitude of any designated sources 
+    by conducting photometry on a masked and background subtracted image
+    '''
+
     data = sci_img['SCI'].data
     gain = sci_img['SCI'].header['GAIN']
     exp_time = sci_img['SCI'].header['EXPTIME']
 
-    # Photometry
     # masking
     mask = make_source_mask(data, nsigma=2, npixels=5, dilate_size=11)
-    mean, median, std = sigma_clipped_stats(data, sigma=3.0, mask=mask)
-    imgdata_bkgsub = data - median                                       #only use imgdata_bkgsub from here on
+    bkg = sep.Background(data)
+    imgdata_bkgsub = data - bkg.back()
     # create an error map (extra steps are taken to handle negative values)
     errmap = np.sqrt(np.sqrt(imgdata_bkgsub**2))/gain
-    
+
+    # Photometry
     source_pos = np.transpose((x, y))
     source_ap = CircularAperture(source_pos, r=aperture)
-    source_flux = aperture_photometry(data, source_ap, error=errmap)
+    source_flux = aperture_photometry(imgdata_bkgsub, source_ap, error=errmap)
     mag = -2.5 * np.log10(source_flux['aperture_sum'] * gain / exp_time)
     magerr = np.sqrt(((-5 / ((2 * np.log(10)) * (source_flux['aperture_sum'] * gain))) * (source_flux['aperture_sum_err'] * gain)) ** 2)
     
