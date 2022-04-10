@@ -1,3 +1,4 @@
+import sys
 import unittest
 import click
 from . import _cli as cli
@@ -20,5 +21,7 @@ def test_cmd(hduls, name):
         test_suite = unittest.TestLoader().loadTestsFromModule(getattr(test, name))
 
     runner = unittest.TextTestRunner()
-    runner.run(test_suite)
+    output = runner.run(test_suite).wasSuccessful()
+    if not output:
+        sys.exit(1)
     return hduls
