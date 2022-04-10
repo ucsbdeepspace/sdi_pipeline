@@ -28,7 +28,7 @@ def _in_cone(coord: SkyCoord, cone_center: SkyCoord, cone_radius: u.deg):
     d = (coord.ra - cone_center.ra) ** 2 + (coord.dec - cone_center.dec) ** 2
     return d < (cone_radius ** 2)
 
-def ref(hduls, read_ext=-1, write_ext="REF", threshold=0.001):
+def ref(hduls, read_ext=-1, write_ext="REF"):
     """
     add information about remote reference stars to a 'REF' BinTableHDU
     \b
@@ -130,10 +130,8 @@ def ref(hduls, read_ext=-1, write_ext="REF", threshold=0.001):
 @cli.cli.command("ref")
 @click.option("-r", "--read-ext", default="CAT", help="The HDU to match")
 @click.option("-w", "--write-ext", default="REF", help="The HDU to load ref into")
-@click.option("-t", "--threshold", default=0.001, type=float,
-              help="The threshold in degrees for a cone search")
 @cli.operator
-def ref_cmd(hduls, read_ext=-1, write_ext="REF", threshold=0.001):
+def ref_cmd(hduls, read_ext=-1, write_ext="REF"):
     """
     add information about remote reference stars to a 'REF' BinTableHDU
     \b
