@@ -29,10 +29,9 @@ def write(hduls, directory, format_):
     import os
 
     #check if directory exists
-    isFile = os.path.isfile(directory)
-    print(isFile)
+    is_dir = os.path.isdir(directory)
 
-    if isFile == False:
+    if is_dir == False:
         os.mkdir(directory)
         print('directory was not present, now made at' + directory)
 
