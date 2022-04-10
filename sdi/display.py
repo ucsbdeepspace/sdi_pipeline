@@ -18,7 +18,7 @@ def display(hduls, cats=None, color='green', size=40):
     """
     ds9 = DS9()
     ds9.set("scale mode zscale")
-    # TODO Make this a real generator
+    # TODO: Make this a real generator
     hduls = [h for h in hduls]
     try:
         cats = [hdul[cats].data for hdul in hduls]
