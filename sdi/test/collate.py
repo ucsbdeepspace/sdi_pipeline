@@ -42,7 +42,7 @@ class TestCollate(unittest.TestCase):
 
     def test_click(self):
         runner = CliRunner()
-        result = runner.invoke(sdi._collate_cmd, ['-c', 'xy'])
+        result = runner.invoke(sdi._collate_cmd)
         assert result.exit_code == 0
 
 if __name__ == "__main__":

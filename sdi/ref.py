@@ -6,22 +6,21 @@ HISTORY
 """
 # general imports
 
+import warnings
 import click
 import numpy as np
 from astropy.coordinates import SkyCoord
 import astropy.units as u
 from astropy.io import fits
 from . import _cli as cli
-from astropy import wcs
-import warnings
 
 # define specific columns so we don't get dtype issues from the chaff
 COLUMNS = ["source_id", "ra", "ra_error", "dec", "dec_error",
            "phot_g_mean_flux", "phot_g_mean_flux_error", "phot_g_mean_mag",
            "phot_rp_mean_flux", "phot_rp_mean_flux_error", "phot_rp_mean_mag",
-           "phot_bp_mean_flux","phot_bp_mean_flux_error","phot_bp_mean_mag"]
+           "phot_bp_mean_flux", "phot_bp_mean_flux_error", "phot_bp_mean_mag"]
 
-def _in_cone(coord: SkyCoord, cone_center: SkyCoord, cone_radius: u.degree):
+def _in_cone(coord: SkyCoord, cone_center: SkyCoord, cone_radius: u.deg):
     """
     Checks if SkyCoord coord is in the cone described by conecenter and
     cone_radius
@@ -54,7 +53,7 @@ def ref(hduls, read_ext=-1, write_ext="REF", threshold=0.001):
     cached_table = np.array([])
 
     # an arbitrary cone search radius, separate from the threshold value
-    cone_radius = u.Quantity(0.05 , u.deg)
+    cone_radius = u.Quantity(0.05, u.deg)
     # we need this to track blanks till we know the dtype
     initial_empty = 0
     # An adaptive method of obtaining the threshold value
@@ -63,9 +62,8 @@ def ref(hduls, read_ext=-1, write_ext="REF", threshold=0.001):
         threshold = u.Quantity(threshold, u.deg)
         ra = hdul[read_ext].data["RA"]
         dec = hdul[read_ext].data["DEC"]
-        sources = hdul[read_ext].data
         output_table = np.array([])
-        coordinates = SkyCoord(ra,dec,unit="deg")
+        coordinates = SkyCoord(ra, dec, unit="deg")
 
         for coord in coordinates:
             ########### Query an area if we have not done so already ###########
@@ -83,8 +81,7 @@ def ref(hduls, read_ext=-1, write_ext="REF", threshold=0.001):
                     cached_table = data.data
                 for d in data:
                     # construct Coord objects for the new data
-                    cached_coords.append(SkyCoord(d["ra"], d["dec"],
-                                         unit=(u.deg, u.deg)))
+                    cached_coords.append(SkyCoord(d["ra"], d["dec"], unit=(u.deg, u.deg)))
                 # note that we have now queried this area
                 queried_coords.append(coord)
 
@@ -99,7 +96,7 @@ def ref(hduls, read_ext=-1, write_ext="REF", threshold=0.001):
                     else:
                         output_table = np.copy(ct)
                         output_table = np.hstack((np.empty(shape=initial_empty,
-                                       dtype=output_table.dtype), output_table))
+                                                           dtype=output_table.dtype), output_table))
                     appended = True
                     break
                 else:
@@ -118,8 +115,8 @@ def ref(hduls, read_ext=-1, write_ext="REF", threshold=0.001):
         extname = write_ext
         header = fits.Header([fits.Card("HISTORY", "From the GAIA remote db")])
         # replace nan values with 0.0
-        for i,elm in enumerate(output_table):
-            for j,val in enumerate(elm):
+        for i, elm in enumerate(output_table):
+            for j, val in enumerate(elm):
                 if np.isnan(val):
                     elm[j] = 0.0
         # only append the hdul if output_table is not empty
