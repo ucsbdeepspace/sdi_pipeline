@@ -84,7 +84,7 @@ def norm(ref_table,cat_table):
     return gaia_mag_transformed
 
 
-def photometry(x,y,aperture,sci_iimg):
+def photometry(x,y,aperture,sci_img):
     '''
     This function calculates the magnitude of any designated sources 
     by conducting photometry on a masked and background subtracted image
@@ -96,7 +96,8 @@ def photometry(x,y,aperture,sci_iimg):
 
     # masking
     mask = make_source_mask(data, nsigma=2, npixels=5, dilate_size=11)
-    bkg = sep.Background(data)
+    data = data.byteswap().newbyteorder()
+    bkg = sep.Background(data, mask=mask)
     imgdata_bkgsub = data - bkg.back()
     # create an error map (extra steps are taken to handle negative values)
     errmap = np.sqrt(np.sqrt(imgdata_bkgsub**2))/gain

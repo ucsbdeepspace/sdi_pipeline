@@ -7,6 +7,7 @@ Created on Tue Jan 25 20:52:51 2022
 
 import numpy as np
 import matplotlib.pyplot as plt
+import sep
 from astropy.io import fits
 from astropy import units as u
 from astropy.coordinates import SkyCoord
@@ -84,26 +85,33 @@ def norm(ref_table,cat_table):
     return gaia_mag_transformed
 
 def photometry(x,y,aperture,sci_img):
-    
+
+    '''
+    This function calculates the magnitude of any designated sources
+    by conducting photometry on a masked and background subtracted image
+    '''
+
     data = sci_img['SCI'].data
     gain = sci_img['SCI'].header['GAIN']
     exp_time = sci_img['SCI'].header['EXPTIME']
 
-    # Photometry
     # masking
     mask = make_source_mask(data, nsigma=2, npixels=5, dilate_size=11)
-    mean, median, std = sigma_clipped_stats(data, sigma=3.0, mask=mask)
-    imgdata_bkgsub = data - median                                       #only use imgdata_bkgsub from here on
+    data = data.byteswap().newbyteorder()
+    bkg = sep.Background(data, mask=mask)
+    imgdata_bkgsub = data - bkg.back()
     # create an error map (extra steps are taken to handle negative values)
     errmap = np.sqrt(np.sqrt(imgdata_bkgsub**2))/gain
-    
+
+    # Photometry
     source_pos = np.transpose((x, y))
     source_ap = CircularAperture(source_pos, r=aperture)
-    source_flux = aperture_photometry(data, source_ap, error=errmap)
+    source_flux = aperture_photometry(imgdata_bkgsub, source_ap, error=errmap)
     mag = -2.5 * np.log10(source_flux['aperture_sum'] * gain / exp_time)
     magerr = np.sqrt(((-5 / ((2 * np.log(10)) * (source_flux['aperture_sum'] * gain))) * (source_flux['aperture_sum_err'] * gain)) ** 2)
-    
+
     return mag, magerr
+
 
 #%%
 #Start by retrieveing radec for all reference stars
@@ -223,11 +231,13 @@ for target_coord in target_coords:
             fit, sum_sq_resid, rank, singular_values, rcond = np.polyfit(x[1:], y[1:], 1, full=True)
             fit_fn = np.poly1d(fit)
             residuals = fit_fn(x)-y
+            '''
             fig=plt.figure(figsize=(18, 16), dpi= 80, facecolor='w', edgecolor='k')
             plt.plot(x,y, 'yo', x, fit_fn(x), '--k')
             plt.xlabel('instrumental mag')
             plt.ylabel('reference magnitude')
-            plt.show()        
+            plt.show()
+            '''
             # fit_fn is now a function which takes in x and returns an estimate for y, 
             #Use the fit from above to calculate the target magnitude
             #target_inst_mag = photometry(target['x'][im],target['y'][im], target['a'][im], sci_ims[im])[0][0]
