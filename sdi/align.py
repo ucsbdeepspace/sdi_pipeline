@@ -49,7 +49,7 @@ def align(hduls, name="SCI", ref=None):
         print("The reference file have doesn't have Attribute: Data")
 
     for hdul in hduls_list:
-        np_src = hdul[name]
+        np_src = hdul[name].data
         output = np.array([])
         try:
             output = astroalign.register(np_src, ref_data)[0]
