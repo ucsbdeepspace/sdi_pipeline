@@ -68,7 +68,7 @@ lc_PTF = lightcurve(time_PTF, magauto,magerr_PTF,my_freq)
 lc_PTF.lombscargle()
 lc_PTF.phase_fold()
 
-data_SDI = np.genfromtxt('var_bright_test65.csv',delimiter=',')
+data_SDI = np.genfromtxt('var_bright_test.csv',delimiter=',')
 t = []
 mag = []
 magerr_SDI = []
