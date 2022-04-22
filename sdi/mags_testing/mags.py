@@ -83,6 +83,25 @@ def norm(ref_table,cat_table):
     
     return gaia_mag_transformed
 
+def ref_magerr(ref_mag, g_rp_g, g_bp_g):
+    ref_mag = ref_table['phot_g_mean_mag']
+    g_rp_g = ref_table["phot_rp_mean_mag"]
+    g_bp_g = ref_table["phot_bp_mean_mag"]
+    gaia_mag_err = 0.16497
+    for i,j,k in zip(range(0,len(ref_mag)),range(0,len(g_rp_g)),range(0,len(g_bp_g))):
+        if 25>ref_mag[i]>0.5  and 25>g_rp_g[j]>0.5  and 25>g_bp_g[k]>0.5:
+            ref_mag_err.append(np.sqrt((0.16497)**2+(0.4625*0.16497(g_bp_g[k]-g_rp_g[j])*0.16497)**2+(0.25171*2*0.16497(g_bp_g[k]-g_rp_g[j])*0.16497)**2+(0.021349*3*0.16497(g_bp_g[k]-g_rp_g[j])**2*0.16497)**2))
+        else:
+            ref_mag_err.append(np.nan)
+
+    ref_mag_err= np.array(ref_mag_err)
+    return ref_mag_err
+#take partials*gaia err
+
+#error function for propagating error through the fit
+def error_prop(target_mag, magnitude_err, fit_slope,  parameter_err):
+    return np.sqrt((target_mag*parameter_err)**2+(fit_slope*magnitude_err)**2)
+
 def photometry(x,y,aperture,sci_img):
     
     data = sci_img['SCI'].data
@@ -144,7 +163,7 @@ var_source = hdultocluster(ims, name = 'XRT', tablename= 'XOBJ')
 var_sources = [cluster_search_radec(var_source, coord.ra.deg, coord.dec.deg) for coord in comp_coords]
 var_coords = [SkyCoord(v['ra'],v['dec'], frame = 'icrs', unit = 'degree') for v in var_sources][0]
 #%%
-nonvar_idx = []
+
 for v in var_coords:
     for c in range(0,len(comp_coords)):
         if v!=comp_coords[c]:
@@ -230,12 +249,18 @@ for im in range(0,len(ims)):
         #Use the fit from above to calculate the target magnitude
         target_inst_mag = photometry(target['x'][im],target['y'][im], target['a'][im], sci_ims[im])[0][0]
         target_mag.append(fit_fn(target_inst_mag))
-        target_magerr.append(np.std(residuals))
+        #target_magerr.append(np.std(residuals))
         
         #defining the parameter error for the linear fit
-        coeff, cov = np.polyfit(x,y,1,cov = true)
-        parameter__err = np.sqrt(np.diag(cov)) 
+        coeff, cov = np.poly1d(x, y, cov = true)
+        parameter_err = np.sqrt(np.diag(cov)) 
+        fit_slope = np.poly1d(arr[0])
 
+        #need to print the m from the polyfit, and get the error in the instrumental mag, then delete the current error
+        mag_error =(error_prop(target_mag, in_magerr, fit_slope, parameter_err))
+        #checking if it works
+        mag_err = np.array(mag_error)
+        target_magerr.append(mag_err)
 
     except ValueError:
         #!TODO: correct error prop
@@ -245,17 +270,23 @@ for im in range(0,len(ims)):
         corr = np.abs(instrumental_mag)-ref_mag[0]
         target_inst_mag = photometry(target['x'][im],target['y'][im], target['a'][im], sci_ims[im])[0][0]
         target_mag.append(corr + target_inst_mag)
-        target_magerr.append(in_magerr)
+        #target_magerr.append(in_magerr)
         #use the parameter error to find the error in this magnitude, need to know what the final value that gets spit out is defined as, think it is target mag. need other sigma
-        #def error_prop(target_mag, sigma_mag, fit_slope, parameter_err):
-        #   return np.sqrt((target_mag*parameter_err)**2+(fit_slope*sigma_mag)**2)
-        #target_magerr = error_prop(...
-
+        #need to write the error for the ref mag, think everything else should be good...
+        def correrr(inst_err, ref_err):
+            return np.sqrt(np.abs(inst_err**2-ref_err**2))
+        corr_err =np.array(correrr(in_magerr, ref_mag_err))
+        def nonfiterr(c_err, inst_err):
+            return np.sqrt(c_err**2+inst_err**2)
+        nonfit_err =(nonfiterr(corr_err, in_magerr))
+        nonfit_err = np.array(nonfit_err)
+        target_magerr.append(nonfit_err)
+        #checking it works
+        
 #%%
 rows = zip(target_mag,target_magerr, ts)
 
 import csv
-
 with open('var_bright_test.csv', "w") as f:
     writer = csv.writer(f)
     for row in rows:
