@@ -106,7 +106,7 @@ mag = rr_star['mag']
 magerr = rr_star['magerr']
 """
 #setting up the window function. The duration of each exposure is much shorter than the time over which the images are taken so I am approximating to delta functions
-"""
+
 def delta_funcs(x, xmin=None, xmax=None):
    # Return arrays for plotting delta functions
    # at locations x with heights h
@@ -135,15 +135,15 @@ def delta_funcs(x, xmin=None, xmax=None):
 #plt.show()
 
 #Comparing the transform of our window function to the produced lombscargle periodogram
-window_transform = LombScargle(window_func[0],window_func[1]).autopower(minimum_frequency=1,maximum_frequency =3)
-plt.figure()
-plt.plot(window_transform[0],window_transform[1])
-plt.xlabel('frequency (Hz)')
-plt.ylabel('Power')
-plt.show()
+#window_transform = LombScargle(window_func[0],window_func[1]).autopower(minimum_frequency=1,maximum_frequency =3)
+#plt.figure()
+#plt.plot(window_transform[0],window_transform[1])
+#plt.xlabel('frequency (Hz)')
+#plt.ylabel('Power')
+#plt.show()
 
 
-"""
+
 lc_SDI = lightcurve(t,mag,magerr,np.linspace(1.3,1.8,3000))
 #print(len(lc_SDI.time),np.max(lc_SDI.flux),np.min(lc_SDI.flux))
 lc_SDI.lombscargle()
@@ -152,7 +152,7 @@ lc_SDI.phase_fold()
 #Plotting
 print(lc_SDI.period)
 print(lc_PTF.period)
-#plt.errorbar(lc_PTF.phase, lc_PTF.folded_flux,yerr = magerr_PTF,fmt = 'r*', label = 'PTF data')
+plt.errorbar(lc_PTF.phase, lc_PTF.folded_flux,yerr = magerr_PTF,fmt = 'r*', label = 'PTF data')
 plt.errorbar(lc_SDI.phase, lc_SDI.folded_flux, yerr = magerr ,fmt = 'b*', label = 'SDI data')
 plt.legend()
 plt.title('Phase diagram for a random star from our catalog')
@@ -160,10 +160,7 @@ plt.xlabel('Phase')
 plt.ylabel('Magnitude')
 plt.show()
 
-plt.scatter(np.linspace(1,120,120), np.sort(lc_SDI.flux))
-plt.show()
-
-#plt.plot(lc_PTF.time,lc_PTF.flux,'o', label = 'PTF data')
+plt.plot(lc_PTF.time,lc_PTF.flux,'o', label = 'PTF data')
 plt.plot(lc_SDI.time,lc_SDI.flux,'o', label = 'SDI data')
 plt.legend()
 plt.title('Lightcurve')

@@ -11,7 +11,7 @@ import sep
 from astropy.io import fits
 from astropy import units as u
 from astropy.coordinates import SkyCoord
-from photutils.aperture import CircularAperture
+from photutils.aperture import EllipticalAperture
 from photutils.aperture import aperture_photometry
 from glob import glob
 from photutils.segmentation import make_source_mask
@@ -84,7 +84,7 @@ def norm(ref_table,cat_table):
     return gaia_mag_transformed
 
 
-def photometry(x,y,aperture,sci_img):
+def photometry(x,y,a,b,sci_img):
     '''
     This function calculates the magnitude of any designated sources 
     by conducting photometry on a masked and background subtracted image
@@ -93,7 +93,7 @@ def photometry(x,y,aperture,sci_img):
     data = sci_img['SCI'].data
     gain = sci_img['SCI'].header['GAIN']
     exp_time = sci_img['SCI'].header['EXPTIME']
-
+    
     # masking
     mask = make_source_mask(data, nsigma=2, npixels=5, dilate_size=11)
     data = data.byteswap().newbyteorder()
@@ -104,7 +104,7 @@ def photometry(x,y,aperture,sci_img):
 
     # Photometry
     source_pos = np.transpose((x, y))
-    source_ap = CircularAperture(source_pos, r=aperture)
+    source_ap = EllipticalAperture(source_pos, a, b)
     source_flux = aperture_photometry(imgdata_bkgsub, source_ap, error=errmap)
     mag = -2.5 * np.log10(source_flux['aperture_sum'] * gain / exp_time)
     magerr = np.sqrt(((-5 / ((2 * np.log(10)) * (source_flux['aperture_sum'] * gain))) * (source_flux['aperture_sum_err'] * gain)) ** 2)
@@ -134,7 +134,7 @@ refcoord = SkyCoord(ref_ra,ref_dec,frame = 'icrs',unit='degree')
 
 #Then use _in_cone to see which stars are close to the target star
 #target_coord = SkyCoord(11.291,41.508, frame = 'icrs', unit = 'degree')
-target_coord = SkyCoord(ims[0]['CAT'].data['ra'],ims[0]['CAT'].data['dec'], frame= 'icrs',unit='degree')
+target_coord = SkyCoord(11.291,41.508, frame = 'icrs', unit = 'degree')
 comp_coords = find_ref(target_coord, refcoord) #in all images
 #%%
 #Find the comp_stars in the ref hdu
@@ -217,7 +217,7 @@ for im in range(0,len(ims)):
         instrumental_mag = []
         in_magerr = []
         for i in range(0,len(comp_sources_new)):
-            arr = photometry(comp_sources_new[i]['x'][im],comp_sources_new[i]['y'][im], comp_sources_new[i]['a'][im], sci_ims[im])
+            arr = photometry(comp_sources_new[i]['x'][im],comp_sources_new[i]['y'][im], comp_sources_new[i]['a'][im], comp_sources_new[i]['b'][im], sci_ims[im])
             instrumental_mag.append(arr[0][0])
             in_magerr.append(arr[1][0])
         
@@ -234,7 +234,7 @@ for im in range(0,len(ims)):
         #plt.show()        
         # fit_fn is now a function which takes in x and returns an estimate for y, 
         #Use the fit from above to calculate the target magnitude
-        target_inst_mag = photometry(target['x'][im],target['y'][im], target['a'][im], sci_ims[im])[0][0]
+        target_inst_mag = photometry(target['x'][im],target['y'][im], target['a'][im], target['b'][im], sci_ims[im])[0][0]
         target_mag.append(fit_fn(target_inst_mag))
         target_magerr.append(np.std(residuals))
     
