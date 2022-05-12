@@ -1,0 +1,7 @@
+click
+astropy
+photutils
+ois
+pyds9
+astroalign
+astroquery
