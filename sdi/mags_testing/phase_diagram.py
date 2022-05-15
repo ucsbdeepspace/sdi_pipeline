@@ -68,20 +68,21 @@ lc_PTF = lightcurve(time_PTF, magauto,magerr_PTF,my_freq)
 lc_PTF.lombscargle()
 lc_PTF.phase_fold()
 
-data_SDI = np.genfromtxt('var_bright_test.csv',delimiter=',')
+
+data_SDI = np.genfromtxt('85.csv',delimiter=',')
 t = []
 mag = []
 magerr_SDI = []
 for row in data_SDI:
-    t.append(row[2])
+    t.append(row[1])
     mag.append(row[0])
-    magerr_SDI.append(row[1])
+    #magerr_SDI.append(row[1])
 t = np.array(t)
 mag = np.array(mag)
 magerr = np.array(magerr_SDI)
 my_freq = np.linspace(1.5,1.8,3000)
 #frequency is 1.727652065
-lc_SDI = lightcurve(t, mag,magerr,my_freq)
+lc_SDI = lightcurve(t, mag, 0.1, my_freq)
 lc_SDI.lombscargle()
 lc_SDI.phase_fold()
 """Data from our images"""
@@ -144,7 +145,7 @@ def delta_funcs(x, xmin=None, xmax=None):
 
 
 
-lc_SDI = lightcurve(t,mag,magerr,np.linspace(1.3,1.8,3000))
+lc_SDI = lightcurve(t,mag, 0.1, my_freq)
 #print(len(lc_SDI.time),np.max(lc_SDI.flux),np.min(lc_SDI.flux))
 lc_SDI.lombscargle()
 lc_SDI.phase_fold()
@@ -152,8 +153,8 @@ lc_SDI.phase_fold()
 #Plotting
 print(lc_SDI.period)
 print(lc_PTF.period)
-plt.errorbar(lc_PTF.phase, lc_PTF.folded_flux,yerr = magerr_PTF,fmt = 'r*', label = 'PTF data')
-plt.errorbar(lc_SDI.phase, lc_SDI.folded_flux, yerr = magerr ,fmt = 'b*', label = 'SDI data')
+#plt.errorbar(lc_PTF.phase, lc_PTF.folded_flux,yerr = magerr_PTF,fmt = 'r*', label = 'PTF data')
+plt.errorbar(lc_SDI.phase, lc_SDI.folded_flux, yerr = None ,fmt = 'b*', label = 'SDI data')
 plt.legend()
 plt.title('Phase diagram for a random star from our catalog')
 plt.xlabel('Phase')

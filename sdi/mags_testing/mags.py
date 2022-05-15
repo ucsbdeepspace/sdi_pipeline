@@ -237,16 +237,18 @@ for im in range(0,len(ims)):
         target_inst_mag = photometry(target['x'][im],target['y'][im], target['a'][im], target['b'][im], sci_ims[im])[0][0]
         target_mag.append(fit_fn(target_inst_mag))
         target_magerr.append(np.std(residuals))
-    
+
+     
     except ValueError:
         #!TODO: correct error prop
         #For one ref star, take the star, find the correction, and apply it to the rest of the image
-        instrumental_mag = photometry(comp_sources[0]['x'][im],comp_sources[0]['y'][im], comp_sources[0]['a'][im], sci_ims[im])[0][0]
-        in_magerr = photometry(comp_sources[0]['x'][im], comp_sources[0]['y'][im], comp_sources[0]['a'][im], sci_ims[im])[1][0]
+        instrumental_mag = photometry(comp_sources[0]['x'][im],comp_sources[0]['y'][im], comp_sources[0]['a'][im], comp_sources[0]['b'][im], sci_ims[im])[0][0]
+        in_magerr = photometry(comp_sources[0]['x'][im], comp_sources[0]['y'][im], comp_sources[0]['a'][im], comp_sources[0]['b'][im], sci_ims[im])[1][0]
         corr = np.abs(instrumental_mag)-ref_mag[0]
-        target_inst_mag = photometry(target['x'][im],target['y'][im], target['a'][im], sci_ims[im])[0][0]
+        target_inst_mag = photometry(target['x'][im],target['y'][im], target['a'][im], target['b'][im], sci_ims[im])[0][0]
         target_mag.append(corr + target_inst_mag)
         target_magerr.append(in_magerr)
+    
 #%%
 rows = zip(target_mag,target_magerr, ts)
 
