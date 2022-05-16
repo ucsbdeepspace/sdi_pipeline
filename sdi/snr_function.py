@@ -43,7 +43,7 @@ def snr(hduls, name="SCI"):
         sig_to_noise = (signal)/(noise)
         hdul["CAT"].header.append(('SNR', sig_to_noise, "signal to noise ratio"))
         times.append(time.time() - loop_start)
-    print(f"AVG time to calc SNR : {np.mean(times)}")
+    print(f"\nAVG time to calc SNR : {np.mean(times)}")
     print(f"Time to run snr_function.py : {time.time() - time_start}")
     return (hdul for hdul in hduls)
 

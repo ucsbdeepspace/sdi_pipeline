@@ -14,6 +14,7 @@ from astropy.coordinates import SkyCoord
 from . import _cli as cli
 
 import time # timing
+import numpy as np
 
 
 def extract(hduls, stddev_thresh=3.0, read_ext="SUB", write_ext="XRT"):
@@ -31,6 +32,7 @@ def extract(hduls, stddev_thresh=3.0, read_ext="SUB", write_ext="XRT"):
     """
     time_start = time.time()
     times = []
+    hdul_list = []
     for hdul in hduls:
         loop_start = time.time()
         data = hdul[read_ext].data
@@ -63,10 +65,11 @@ def extract(hduls, stddev_thresh=3.0, read_ext="SUB", write_ext="XRT"):
         new_table = fits.BinTableHDU(header=header, name=extname, ver=extver).from_columns(out_cols+new_cols)
         new_hdu = fits.BinTableHDU(new_table.data, header=header, name=extname, ver=extver)
         hdul.append(new_hdu)
+        hdul_list.append(hdul)
         times.append(time.time() - loop_start)
-        print(f"AVG time per loop in extract : {time.time() - loop_start}")
-        print(f"time to run extract.py : {time.time() - time_start}")
-        yield hdul
+    print(f"\nAVG time per loop in extract : {np.mean(times)}")
+    print(f"time to run extract.py : {time.time() - time_start}")
+    return (hdul for hdul in hdul_list)
 
 
 

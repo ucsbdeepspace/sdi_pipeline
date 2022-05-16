@@ -22,7 +22,7 @@ def read(directory):
     except:
         pass
     hduls = [fits.open(p) for p in paths]
-    print(f"time to read in all files: {time.time() - time_start}")
+    print(f"\ntime to read in all files: {time.time() - time_start}")
     return hduls
 
 def write(hduls, directory, format_):
@@ -42,7 +42,7 @@ def write(hduls, directory, format_):
         path = os.path.join(directory, format_.format(number=i))
         click.echo(f"writing hdul to {path}")
         h.writeto(path)
-    print(f"time to write in all files: {time.time() - time_start}")
+    print(f"\ntime to write in all files: {time.time() - time_start}")
     return hduls
 
 @cli.cli.command("write")

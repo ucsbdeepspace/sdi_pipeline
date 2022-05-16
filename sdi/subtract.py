@@ -21,26 +21,26 @@ def subtract(hduls, name="ALGN", method: ("ois", "numpy")="ois"):
     outputs = []
     template = combine(hduls, name)["PRIMARY"].data # this is a temporary HDUL containing 1 PrimaryHDU with combined data
     if method == "ois":
-        for i,hdu in enumerate(hduls):
+        for i,hdul in enumerate(hduls):
             loop_start = time.time()
             try:
-                diff = ois.optimal_system(image=hdu[name].data, refimage=template, method='Bramich')[0]
+                diff = ois.optimal_system(image=hdul[name].data, refimage=template, method='Bramich')[0]
             except ValueError:
-                diff = ois.optimal_system(image=hdu[name].data.byteswap().newbyteorder(), refimage=template.byteswap().newbyteorder(), method='Bramich')[0]
-            hdu.insert(1,CompImageHDU(data = diff, header =  hduls[i]['ALGN'].header, name = "SUB"))
-            outputs.append(hdu)
+                diff = ois.optimal_system(image=hdul[name].data.byteswap().newbyteorder(), refimage=template.byteswap().newbyteorder(), method='Bramich')[0]
+            hdul.insert(1,CompImageHDU(data = diff, header =  hduls[i]['ALGN'].header, name = "SUB"))
+            outputs.append(hdul)
             times.append(time.time() - loop_start)
 
     elif method == "numpy":
-        for i,hdu in enumerate(hduls):
+        for i,hdul in enumerate(hduls):
             loop_start = time.time()
-            diff = template - hdu[name].data
-            hdu.insert(1,CompImageHDU(data = diff, header =  hduls[i]['ALGN'].header, name = "SUB"))
-            outputs.append(hdu)
+            diff = template - hdul[name].data
+            hdul.insert(1,CompImageHDU(data = diff, header =  hduls[i]['ALGN'].header, name = "SUB"))
+            outputs.append(hdul)
             times.append(time.time() - loop_start)
     else:
         raise ValueError(f"method {method} unknown!")
-    print(f"AVG time to subtract : {np.mean(times)}")
+    print(f"\nAVG time to subtract : {np.mean(times)}")
     print(f"time to run subtract.py : {time.time() - time_start}")
     return (hdul for hdul in outputs)
 
