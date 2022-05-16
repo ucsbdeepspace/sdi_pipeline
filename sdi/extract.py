@@ -64,9 +64,10 @@ def extract(hduls, stddev_thresh=3.0, read_ext="SUB", write_ext="XRT"):
         new_hdu = fits.BinTableHDU(new_table.data, header=header, name=extname, ver=extver)
         hdul.append(new_hdu)
         times.append(time.time() - loop_start)
+        print(f"AVG time per loop in extract : {time.time() - loop_start}")
+        print(f"time to run extract.py : {time.time() - time_start}")
         yield hdul
-    print(f"AVG time per loop in extract : {time.time() - loop_start}")
-    print(f"time to run extract.py : {time.time() - time_start}")
+
 
 
 @cli.cli.command("extract")
