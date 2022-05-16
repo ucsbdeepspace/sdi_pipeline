@@ -1,0 +1,422 @@
+[1mdiff --git a/sdi/README.txt b/sdi/README.txt[m
+[1mdeleted file mode 100644[m
+[1mindex 31e83cb..0000000[m
+[1m--- a/sdi/README.txt[m
+[1m+++ /dev/null[m
+[36m@@ -1,2 +0,0 @@[m
+[31m-purpose of branch is to change headers of ALGN and add ra/dec to extract. We will be testing on LCO data first, then PTF data.[m
+[31m-See issue #132 amd #73[m
+[1mdiff --git a/sdi/__init__.py b/sdi/__init__.py[m
+[1mindex 8fd5ca3..17a7766 100644[m
+[1m--- a/sdi/__init__.py[m
+[1m+++ b/sdi/__init__.py[m
+[36m@@ -8,7 +8,6 @@[m [mfrom .subtract import subtract[m
+ from .extract import extract[m
+ from .ref import ref[m
+ from .secid import secid[m
+[31m-from .collate import collate[m
+ [m
+ from . import test[m
+ [m
+[36m@@ -19,7 +18,6 @@[m [mfrom .align import align_cmd as _align_cmd[m
+ from .combine import combine_cmd as _combine_cmd[m
+ from .extract import extract_cmd as _extract_cmd[m
+ from .subtract import subtract_cmd as _subtract_cmd[m
+[31m-from .collate import collate_cmd as _collate_cmd[m
+ from . import test_cmd[m
+ [m
+ _scidir = os.path.join(os.path.dirname(__file__), "test/fixtures/science")[m
+[1mdiff --git a/sdi/align.py b/sdi/align.py[m
+[1mindex 6f86a7e..33cc8ca 100644[m
+[1m--- a/sdi/align.py[m
+[1m+++ b/sdi/align.py[m
+[36m@@ -49,11 +49,10 @@[m [mdef align(hduls, name="SCI", reference=None):[m
+             pass[m
+ [m
+         if hasattr(hdul[name], "data"): ##not sure what happens if this if statement fails. previously it would just write empty data. With this set up data would be left alone.[m
+[31m-            idx = hdul.index_of(name) #this variable is used to keep track of SCI header as the name is switched to ALGN.[m
+[32m+[m[32m            idx = hdul.index_of(name)[m
+             hdul[idx].data = output[m
+             hdul[idx].header['EXTNAME'] = ("ALGN    ")[m
+[31m-            hdul[idx].header = reference.header #hdul['sci'].header = reference.header[m
+[31m-            [m
+[32m+[m
+     return (hdul for hdul in hduls_list)[m
+ [m
+ @cli.cli.command("align")[m
+[1mdiff --git a/sdi/collate.py b/sdi/collate.py[m
+[1mdeleted file mode 100644[m
+[1mindex 17cec7d..0000000[m
+[1m--- a/sdi/collate.py[m
+[1m+++ /dev/null[m
+[36m@@ -1,184 +0,0 @@[m
+[31m-import click[m
+[31m-from . import _cli as cli[m
+[31m-import sys[m
+[31m-import numpy as np[m
+[31m-import matplotlib.pyplot as plt[m
+[31m-from sklearn.cluster import dbscan, OPTICS[m
+[31m-from astropy.io import fits[m
+[31m-[m
+[31m-#Subfunctions utilized in clustering function[m
+[31m-def _norm(array):[m
+[31m-    array -= min(array)[m
+[31m-    array *= 1/max(array)[m
+[31m-    return array[m
+[31m-[m
+[31m-def dist_func(a1, a2):[m
+[31m-    tot = 0[m
+[31m-    for i in range(len(a1)):[m
+[31m-        tot += (a1[i]-a2[i])**2[m
+[31m-    return tot**0.5[m
+[31m-[m
+[31m-def obj_mean(cluster):[m
+[31m-    means = None[m
+[31m-    for source in cluster:[m
+[31m-        if source != None:[m
+[31m-            if not means:[m
+[31m-                 means = [i for i in range(len(source))][m
+[31m-            for idx, coord in enumerate(source):[m
+[31m-                means[idx] += coord[m
+[31m-    return [mean/(len(cluster)-cluster.count(None)) for mean in means][m
+[31m-[m
+[31m-#Exact same function as in _scripts/collateutils, called at the end of running collate[m
+[31m-def cluster_ratio(hduls, name="CAT", tablename="OBJ"):[m
+[31m-    """[m
+[31m-    Prints number of clustered sources out of total sources as well as the percent of clustered sources.[m
+[31m-    Arguments:[m
+[31m-        hduls -- list of fits HDULSs[m
+[31m-        name -- name of HDU for each HDUL containing catalog of sources that were collated[m
+[31m-        tablename -- name of TableHDU appended by collate[m
+[31m-    """[m
+[31m-    points = 0[m
+[31m-    clustered_points = 0[m
+[31m-    for hdul in hduls:[m
+[31m-        points += len(hdul[name].data)[m
+[31m-        noise = 0[m
+[31m-        for point in hdul[tablename].data:[m
+[31m-            if point[0] == -1:[m
+[31m-                noise += 1[m
+[31m-        clustered_points += len(hdul[tablename].data) - noise[m
+[31m-    print("{} out of {} points clustered".format(clustered_points, points), clustered_points/points)[m
+[31m-[m
+[31m-[m
+[31m-#Collate function itself[m
+[31m-def collate(hduls, name="CAT", tablename="OBJ", coords = ["xy"], algorithm="DBSCAN", minpts=4, eps=0.001, maxeps=np.inf, xi=0.85, collision_fix=False):[m
+[31m-    """[m
+[31m-    Clusters source data from HDULs to predict sky objects and then appends a TableHDU to each HDUL containing object/cluster data. [m
+[31m-    The nth index of each TableHDU for each HDUL refers to the same object with the value of the index referring to the[m
+[31m-    (value)th source in the HDUL's source catalog.[m
+[31m-    Collisions refer to when two sources in the same HDUL are clustered to the same object.  In the event of a collision,[m
+[31m-    one source will overwrite the other in the cluster to ensure cluster sizes do not exceed the number of HDULs.[m
+[31m-    Arguments:[m
+[31m-        hduls -- list of fits HDULs[m
+[31m-        name -- name of HDU for each HDUL containing catalog of sources[m
+[31m-        tablename -- name of TableHDU to store cluster data[m
+[31m-        coords -- choice of either 'xy', 'radec' or a custom list of coordinates to calculate distance between sources for clustering[m
+[31m-        algorithm -- choice of 'DBSCAN' or 'OPTICS' clustering algorithm[m
+[31m-        minpts -- minimum cluster size[m
+[31m-        eps -- point neighborhood radius parameter, used only in DBSCAN[m
+[31m-        maxeps -- maximum neighborhood radius parameter, used only in OPTICS[m
+[31m-        xi -- minimum steepness of cluster boundary, used only in OPTICS[m
+[31m-        collision_fix -- allows for optional resolving of collisions which may result in increased runtime[m
+[31m-    """[m
+[31m-    hduls = [hdul for hdul in hduls][m
+[31m-    collisions = [][m
+[31m-    collision_count = 0[m
+[31m-    labels = None[m
+[31m-    if coords[0] == "xy":[m
+[31m-        coords = ("x", "y", "flux")[m
+[31m-    elif coords[0] == "radec":[m
+[31m-        coords = ("ra", "dec", "flux")[m
+[31m-    irdf = [[] for i in range(len(coords))][m
+[31m-    for hdul in hduls:[m
+[31m-        data = hdul[name].data[m
+[31m-        for idx, coord in enumerate(coords):[m
+[31m-            irdf[idx] += list(data[coord])[m
+[31m-    normirdf = [_norm(array) for array in irdf][m
+[31m-[m
+[31m-    if algorithm == "DBSCAN":[m
+[31m-        print('Collating using {} with {} coordinates, minpts={} and eps={}'.format(algorithm, coords, minpts, eps))[m
+[31m-        cores, labels = dbscan(np.vstack(normirdf).T, eps=eps, min_samples=minpts)[m
+[31m-    elif algorithm == "OPTICS":[m
+[31m-        print('Collating using {} with {} coordinates, minpts={}, xi={}, and maxeps={}'.format(algorithm, coords, minpts, xi, maxeps))[m
+[31m-        labels = OPTICS(min_samples=minpts, max_eps=maxeps, xi=xi).fit(np.vstack(normirdf).T).labels_[m
+[31m-    else:[m
+[31m-        print('Invalid clustering method, please use "DBSCAN" or "OPTICS"')[m
+[31m-        return[m
+[31m-   [m
+[31m-    obj_count = max(labels)[m
+[31m-    if obj_count == -1:[m
+[31m-        print('No clusters could be formed. Please try using more images, increasing eps, or changing algorithms.')[m
+[31m-        return[m
+[31m-[m
+[31m-    for i, hdul in enumerate(hduls):[m
+[31m-        source_count = len(hdul[name].data)[m
+[31m-        cols = [-1 for j in range(obj_count+1)][m
+[31m-        for j in range(source_count):[m
+[31m-            if labels[j] != -1:[m
+[31m-                if cols[labels[j]] == -1:[m
+[31m-                    cols[labels[j]] = j[m
+[31m-                else:[m
+[31m-                    collision_count += 1[m
+[31m-                    collisions.append([i, labels[j], j, cols[labels[j]]])[m
+[31m-                    print("collision at hdul {}, object '{}' at sources {} {}".format(i, labels[j], j, cols[labels[j]]))[m
+[31m-        if len(labels) != source_count:[m
+[31m-            labels = labels[source_count:][m
+[31m-        table = [fits.Column(name='objects', format="I", array=np.array(cols), ascii=True)][m
+[31m-        table = fits.TableHDU.from_columns(table)[m
+[31m-        table.name = tablename[m
+[31m-        hdul.append(table)[m
+[31m-[m
+[31m-    print("{} collisions".format(collision_count))[m
+[31m-[m
+[31m-    #Dealing with collisions[m
+[31m-    if collision_fix == True:[m
+[31m-        if len(collisions) > 0:[m
+[31m-            print("Resolving collisions")[m
+[31m-            all_sources = [hdul[name].data for hdul in hduls][m
+[31m-            count = len(hduls[0][tablename].data)[m
+[31m-            clusters = [[] for i in range(count)][m
+[31m-            for hdul in hduls:[m
+[31m-                sources = hdul[name].data[m
+[31m-                for i in range(count):[m
+[31m-                    index = hdul[tablename].data[i][0][m
+[31m-                    if index != -1:[m
+[31m-                        clusters[i].append([sources[index][coord] for coord in coords])[m
+[31m-                    else:[m
+[31m-                        clusters[i].append(None)[m
+[31m-[m
+[31m-            means = [obj_mean(cluster) for cluster in clusters][m
+[31m-            for collision in collisions:[m
+[31m-                sources = all_sources[collision[0]][m
+[31m-                mean = means[collision[1]][m
+[31m-                s1 = [sources[collision[2]][coord] for coord in coords][m
+[31m-                s2 = [sources[collision[3]][coord] for coord in coords][m
+[31m-                if dist_func(s1, mean) < dist_func(s2, mean):[m
+[31m-                    hduls[collision[0]][tablename].data[collision[1]][0] = collision[2][m
+[31m-[m
+[31m-    print("Clustering complete, cluster data stored in '{}' TableHDU".format(tablename))[m
+[31m-    cluster_ratio(hduls, name, tablename)[m
+[31m-    return (hdul for hdul in hduls)[m
+[31m-[m
+[31m-@cli.cli.command("collate")[m
+[31m-@click.option("-n", "--name", default="CAT", help="name of HDU for each HDUL containing catalog of sources")[m
+[31m-@click.option("-t", "--tablename", default="OBJ", help="name of TableHDU to store cluster data")[m
+[31m-#@click.option("-c", "--coords", default="xy", type=click.Choice(["xy", "radec"], case_sensitive=False), help="choice of either 'xy' or 'radec' coordinate system used to calculate distance between sources for clustering")[m
+[31m-@click.option("-c", "--coords", default=["xy"], multiple=True, help="choice of either 'xy' or 'radec' coordinate system used to calculate distance between sources for clustering")[m
+[31m-@click.option("-a", "--algorithm", default="DBSCAN", type=click.Choice(["DBSCAN", "OPTICS"], case_sensitive=False), help="choice of 'DBSCAN' or 'OPTICS' clustering algorithm")[m
+[31m-@click.option("-p", "--minpts", default=4, help="minimum cluster size")[m
+[31m-@click.option("-e", "--eps", default=0.001, help="point neighborhood radius parameter, used only in DBSCAN")[m
+[31m-@click.option("-m", "--maxeps", default=np.inf, help="maximum neighborhood radius parameter, used only in OPTICS")[m
+[31m-@click.option("-x", "--xi", default=0.85, help="minimum steepness of cluster boundary, used only in OPTICS")[m
+[31m-@click.option("-f", "--collision_fix", default=False, help="allows for optional resolving of collisions which may result in increased runtime")[m
+[31m-@cli.operator[m
+[31m-[m
+[31m-#collate function wrapper[m
+[31m-def collate_cmd(hduls, name="CAT", tablename="OBJ", coords=["xy"], algorithm="DBSCAN", minpts=4, eps=0.001, maxeps=np.inf, xi=0.85, collision_fix=False):[m
+[31m-    """[m
+[31m-    Clusters source data from HDULs to predict sky objects and then appends a TableHDU to each HDUL containing object/cluster data. [m
+[31m-    The nth index of each TableHDU for each HDUL refers to the same object with the value of the index referring to the[m
+[31m-    (value)th source in the HDUL's source catalog.[m
+[31m-    Collisions refer to when two sources in the same HDUL are clustered to the same object.  In the event of a collision,[m
+[31m-    one source will overwrite the other in the cluster to ensure cluster sizes do not exceed the number of HDULs.[m
+[31m-    Arguments:[m
+[31m-        hduls -- list of fits HDULs[m
+[31m-        name -- name of HDU for each HDUL containing catalog of sources[m
+[31m-        tablename -- name of TableHDU to store cluster data[m
+[31m-        coords -- choice of either 'xy', 'radec' or a custom list of coordinates to calculate distance between sources for clustering[m
+[31m-        algorithm -- clustering algorithm of choice, either DBSCAN or OPTICS[m
+[31m-        minpts -- minimum cluster size[m
+[31m-        eps -- point neighborhood radius parameter, used only in DBSCAN[m
+[31m-        maxeps -- maximum neighborhood radius parameter, used only in OPTICS[m
+[31m-        xi -- minimum steepness of cluster boundary, used only in OPTICS[m
+[31m-        collision_fix -- allows for optional resolving of collisions[m
+[31m-    """[m
+[31m-    return  collate(hduls, name, tablename, coords, algorithm, minpts, eps, maxeps, xi, collision_fix)[m
+[1mdiff --git a/sdi/combine.py b/sdi/combine.py[m
+[1mindex 5382172..4e5bc9f 100644[m
+[1m--- a/sdi/combine.py[m
+[1m+++ b/sdi/combine.py[m
+[36m@@ -23,17 +23,13 @@[m [mdef combine(hduls, name="ALGN"):[m
+     """ [m
+     hduls_list = [hdul for hdul in hduls][m
+     try:[m
+[31m-        data = [hdul[name].data for hdul in hduls_list] #creates list of all data arrays from all the hdul's in the list. [m
+[32m+[m[32m        data = [hdul[name].data for hdul in hduls_list][m
+     except KeyError:[m
+         hduls_list[0].info()[m
+         raise KeyError(str(f"Name {name} not found in HDUList! Try running again with `combine -n [name]` from above")) from None[m
+[31m-[m
+[31m-    comb = np.median(data, axis=0) [m
+[32m+[m[32m    comb = np.median(data, axis=0)[m
+     hdu = fits.PrimaryHDU(comb)[m
+[31m-[m
+[31m-    #hduls_list += [fits.HDUList([hdu])] [m
+[31m-    #^^We do not need to create a list of HDUL's here. We return a single median image.  [m
+[31m-[m
+[32m+[m[32m    hduls_list += [fits.HDUList([hdu])][m
+     return fits.HDUList([hdu])[m
+ [m
+ @cli.cli.command("combine")[m
+[36m@@ -52,6 +48,6 @@[m [mdef combine_cmd(hduls, name="ALGN"):[m
+     \b[m
+     :param hduls: list of fits hdul's[m
+     :param name: the name of the HDU to sum among the HDULS[m
+[31m-    :returns: a HDUList with a single HDU representing the median image.[m
+[32m+[m[32m    :returns: a list with a single hdul representing the median image.[m
+     """[m
+     return [combine(hduls, name),][m
+[1mdiff --git a/sdi/extract.py b/sdi/extract.py[m
+[1mindex 1719ea1..3453208 100644[m
+[1m--- a/sdi/extract.py[m
+[1m+++ b/sdi/extract.py[m
+[36m@@ -34,13 +34,6 @@[m [mdef extract(hduls, stddev_thresh=3.0, read_ext="SUB", write_ext="XRT"):[m
+             bkg = sep.Background(data)[m
+         sources = sep.extract(data - bkg.back(), bkg.globalrms * stddev_thresh,[m
+                        segmentation_map=False)[m
+[31m-        #Convert xy to RA/DEC in ICRS[m
+[31m-        from astropy import wcs[m
+[31m-        from astropy.coordinates import SkyCoord[m
+[31m-        coords = wcs.utils.pixel_to_skycoord(sources['x'],sources['y'],wcs.WCS(hdul[read_ext].header),origin = 0)[m
+[31m-        coords_icrs = SkyCoord(coords,frame = 'icrs')[m
+[31m-        ra = coords_icrs.ra.degree[m
+[31m-        dec = coords_icrs.dec.degree[m
+         extname = write_ext[m
+         extver = None[m
+         header = fits.Header([fits.Card("HISTORY", "Extracted by sep.")])[m
+[36m@@ -49,14 +42,8 @@[m [mdef extract(hduls, stddev_thresh=3.0, read_ext="SUB", write_ext="XRT"):[m
+             extname = write_ext[0][m
+         except (ValueError, TypeError):[m
+             pass[m
+[31m-        cat = fits.BinTableHDU(data=sources, header=header,[m
+[31m-                                     name=extname, ver=extver)[m
+[31m-        print('name = ',extname)[m
+[31m-        out_cols = cat.data.columns[m
+[31m-        new_cols = fits.ColDefs([fits.Column(name = 'ra',format = 'D',array=ra),fits.Column(name = 'dec', format = 'D', array=dec)])[m
+[31m-        new_table = fits.BinTableHDU(header = header, name = extname, ver=extver).from_columns(out_cols + new_cols)[m
+[31m-        new_hdu = fits.BinTableHDU(new_table.data, header = header, name = extname, ver = extver)[m
+[31m-        hdul.append(new_hdu)[m
+[32m+[m[32m        hdul.append(fits.BinTableHDU(data=sources, header=header,[m
+[32m+[m[32m                                     name=extname, ver=extver))[m
+         yield hdul[m
+ [m
+ @cli.cli.command("extract")[m
+[1mdiff --git a/sdi/ref.py b/sdi/ref.py[m
+[1mindex a9b084d..65a47d2 100644[m
+[1m--- a/sdi/ref.py[m
+[1m+++ b/sdi/ref.py[m
+[36m@@ -30,7 +30,7 @@[m [mdef _in_cone(coord: SkyCoord, cone_center: SkyCoord, cone_radius: u.degree):[m
+     # The 0.0001 so we don't get edge effects[m
+     return d < (cone_radius ** 2)[m
+ [m
+[31m-def ref(hduls, read_ext=-1, write_ext="REF", threshold=0.001):[m
+[32m+[m[32mdef ref(hduls, read_ext="CAT", write_ext="REF", threshold=0.001):[m
+     """[m
+     add information about remote reference stars to a 'REF' BinTableHDU[m
+     \b[m
+[36m@@ -54,28 +54,24 @@[m [mdef ref(hduls, read_ext=-1, write_ext="REF", threshold=0.001):[m
+     cached_coords = [][m
+     cached_table = np.array([])[m
+ [m
+[31m-    # an arbitrary cone search radius, separate from the threshold value[m
+[31m-    cone_radius = u.Quantity(0.04 , u.deg)[m
+[32m+[m[32m    radius = u.Quantity(threshold * 20, u.deg)[m
+[32m+[m[32m    threshold = u.Quantity(threshold, u.deg)[m
+     # we need this to track blanks till we know the dtype[m
+     initial_empty = 0[m
+[31m-    # An adaptive method of obtaining the threshold value[m
+[32m+[m[32m    #CHANGE THIS[m
+     for hdul in hduls:[m
+[31m-        threshold = max(hdul[read_ext].data["a"])*hdul['ALGN'].header['PIXSCALE']/3600[m
+[31m-        threshold = u.Quantity(threshold, u.deg)[m
+[31m-        w = wcs.WCS(hdul['ALGN'].header)[m
+         sources = hdul[read_ext].data[m
+         output_table = np.array([])[m
+[31m-        x = hdul[read_ext].data["x"][m
+[31m-        y = hdul[read_ext].data["y"][m
+[31m-        coordinates = wcs.utils.pixel_to_skycoord(x,y,w)[m
+[31m-[m
+[31m-        for coord in coordinates:[m
+[32m+[m[32m        for source in sources:[m
+[32m+[m[32m            ra = source['ra'][m
+[32m+[m[32m            dec = source['dec'][m
+[32m+[m[32m            coord = SkyCoord(ra=ra,dec=dec,unit=(u.deg,u.deg))[m
+             ########### Query an area if we have not done so already ###########[m
+             # Check to see if we've queried the area[m
+[31m-            if not any((_in_cone(coord, query, cone_radius - 2 * threshold) \[m
+[32m+[m[32m            if not any((_in_cone(coord, query, radius - 2 * threshold) \[m
+                         for query in queried_coords)):[m
+                 # we have never queried the area. Do a GAIA cone search[m
+[31m-                data = Gaia.cone_search_async(coord, cone_radius, columns=COLUMNS,[m
+[32m+[m[32m                data = Gaia.cone_search_async(coord, radius, columns=COLUMNS,[m
+                                               output_format="csv").get_results()[m
+                 data = data.as_array()[m
+                 # add the cache table to the data[m
+[36m@@ -86,16 +82,15 @@[m [mdef ref(hduls, read_ext=-1, write_ext="REF", threshold=0.001):[m
+                 for d in data:[m
+                     # construct Coord objects for the new data[m
+                     cached_coords.append(SkyCoord(d["ra"], d["dec"],[m
+[31m-                                         unit=(u.deg, u.deg)))[m
+[31m-                # note that we have now queried this area[m
+[31m-                queried_coords.append(coord)[m
+[32m+[m[32m                                         unit=(u.deg, u.deg))) #coords here refers to REF coords[m
+[32m+[m[32m                # note that we have now queried this arrea[m
+[32m+[m[32m                queried_coords.append(coord) #coord here refers to CAT coords[m
+ [m
+             ########### Look through our cache for matches #####################[m
+             appended = False[m
+             for ct, cs in zip(cached_table, cached_coords):[m
+                 # look through the cache to find a match[m
+[31m-                # switched coord and cs[m
+[31m-                if _in_cone(cs, coord, threshold):[m
+[32m+[m[32m                if _in_cone(coord, cs, threshold):[m
+                     # if we find a match, copy it to the output table[m
+                     if len(output_table):[m
+                         output_table = np.hstack((output_table, np.copy(ct)))[m
+[36m@@ -118,11 +113,12 @@[m [mdef ref(hduls, read_ext=-1, write_ext="REF", threshold=0.001):[m
+         ########## After going through all sources, add an HDU #################[m
+         extname = write_ext[m
+         header = fits.Header([fits.Card("HISTORY", "From the GAIA remote db")])[m
+[32m+[m[41m        [m
+         # replace nan values with 0.0[m
+         for i,elm in enumerate(output_table):[m
+[31m-            for j,val in enumerate(elm):[m
+[31m-                if np.isnan(val):[m
+[31m-                    elm[j] = 0.0[m
+[32m+[m[41m        [m	[32mfor j,val in enumerate(elm):[m
+[32m+[m[41m        [m		[32mif np.isnan(val):[m
+[32m+[m[41m        [m			[32melm[j] = 0.0[m
+         # only append the hdul if output_table is not empty[m
+         if len(output_table):[m
+             hdul.append(fits.BinTableHDU(data=output_table, header=header, name=extname))[m
+[36m@@ -137,7 +133,7 @@[m [mdef ref(hduls, read_ext=-1, write_ext="REF", threshold=0.001):[m
+ @click.option("-t", "--threshold", default=0.001, type=float,[m
+               help="The threshold in degrees for a cone search")[m
+ @cli.operator[m
+[31m-def ref_cmd(hduls, read_ext="ALGN", write_ext="REF", threshold=0.001):[m
+[32m+[m[32mdef ref_cmd(hduls, read_ext="CAT", write_ext="REF", threshold=0.05):[m
+     """[m
+     add information about remote reference stars to a 'REF' BinTableHDU[m
+     \b[m
+[1mdiff --git a/sdi/subtract.py b/sdi/subtract.py[m
+[1mindex 8324f9c..9ee2b30 100644[m
+[1m--- a/sdi/subtract.py[m
+[1m+++ b/sdi/subtract.py[m
+[36m@@ -14,7 +14,7 @@[m [mdef subtract(hduls, name="ALGN", method: ("ois", "numpy")="ois"):[m
+     """[m
+     hduls = [h for h in hduls][m
+     outputs = [][m
+[31m-    template = combine(hduls, name)["PRIMARY"].data # this is a temporary HDUL containing 1 PrimaryHDU with combined data[m
+[32m+[m[32m    template = combine(hduls, name)["PRIMARY"].data # this is a temporary HDUL containing 1 PrimaryHDU with combinded data[m
+     if method == "ois":[m
+         for i,hdu in enumerate(hduls):[m
+             try:[m
+[36m@@ -23,7 +23,6 @@[m [mdef subtract(hduls, name="ALGN", method: ("ois", "numpy")="ois"):[m
+                 diff = ois.optimal_system(image=hdu[name].data.byteswap().newbyteorder(), refimage=template.byteswap().newbyteorder(), method='Bramich')[0][m
+             hdu.insert(1,CompImageHDU(data = diff, header =  hduls[i]['ALGN'].header, name = "SUB"))[m
+             outputs.append(hdu)[m
+[31m-            i+=1[m
+ [m
+     elif method == "numpy":[m
+         for i,hdu in enumerate(hduls):[m

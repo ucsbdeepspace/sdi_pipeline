@@ -8,13 +8,15 @@ import numpy as np
 from photutils import Background2D, detect_threshold, detect_sources, source_properties
 import click
 from . import _cli as cli
-
+import time
 def snr(hduls, name="SCI"):
     """
     calculates the signal-to-noise ratio of a fits file
     """
-
+    time_start = time.time()
+    times = []
     for hdul in hduls:
+        loop_start = time.time()
         data = hdul[name].data
 
         # identify background rms
@@ -40,7 +42,9 @@ def snr(hduls, name="SCI"):
         noise = bkg_mean_rms
         sig_to_noise = (signal)/(noise)
         hdul["CAT"].header.append(('SNR', sig_to_noise, "signal to noise ratio"))
-
+        times.append(time.time() - loop_start)
+    print(f"AVG time to calc SNR : {np.mean(times)}")
+    print(f"Time to run snr_function.py : {time.time() - time_start}")
     return (hdul for hdul in hduls)
 
 @cli.cli.command("snr")

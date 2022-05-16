@@ -9,6 +9,7 @@ import numpy as np
 from astropy.io import fits
 from . import _cli as cli
 
+import time # timing
 
 def combine(hduls, name="ALGN"):
 
@@ -23,6 +24,7 @@ def combine(hduls, name="ALGN"):
     :param name: the name of the HDU to sum among the HDULS
     :returns: a list with a single hdul representing the median image.
     """
+    time_start = time.time() # timing
     hduls_list = [hdul for hdul in hduls]
     try:
         # Creates list of all data arrays from all the hdul's in the list.
@@ -36,7 +38,7 @@ def combine(hduls, name="ALGN"):
     hdu = fits.PrimaryHDU(comb)
 
     # We do not need to create a list of HDUL's here. We return a single median image.
-
+    print(f"\nTime to run combine.py : {time.time() - time_start}")
     return fits.HDUList([hdu])
 
 

@@ -8,11 +8,13 @@ import sys
 import click
 from astropy.io import fits
 from . import _cli as cli
+import time
 
 def read(directory):
     """
     Takes a directory containing fits files and returns them as a list
     """
+    time_start = time.time()
     paths = glob.glob("{}/*.fits*".format(directory))
     try:
         # if file name is numeric, paths will be sorted in ascending order
@@ -20,6 +22,7 @@ def read(directory):
     except:
         pass
     hduls = [fits.open(p) for p in paths]
+    print(f"time to read in all files: {time.time() - time_start}")
     return hduls
 
 def write(hduls, directory, format_):
@@ -27,7 +30,7 @@ def write(hduls, directory, format_):
     Writes all given hduls into the directory specified
     """
     import os
-
+    time_start = time.time()
     #check if directory exists
     is_dir = os.path.isdir(directory)
 
@@ -39,6 +42,7 @@ def write(hduls, directory, format_):
         path = os.path.join(directory, format_.format(number=i))
         click.echo(f"writing hdul to {path}")
         h.writeto(path)
+    print(f"time to write in all files: {time.time() - time_start}")
     return hduls
 
 @cli.cli.command("write")

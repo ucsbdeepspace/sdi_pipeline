@@ -13,6 +13,8 @@ from astropy.io import fits
 from astropy.coordinates import SkyCoord
 from . import _cli as cli
 
+import time # timing
+
 
 def extract(hduls, stddev_thresh=3.0, read_ext="SUB", write_ext="XRT"):
     """
@@ -27,7 +29,10 @@ def extract(hduls, stddev_thresh=3.0, read_ext="SUB", write_ext="XRT"):
     :return: a list of HDUL, each with a new `write_ext` HDU appended that is a
         record of extracted sources
     """
+    time_start = time.time()
+    times = []
     for hdul in hduls:
+        loop_start = time.time()
         data = hdul[read_ext].data
         bkg = None
         try:
@@ -58,7 +63,10 @@ def extract(hduls, stddev_thresh=3.0, read_ext="SUB", write_ext="XRT"):
         new_table = fits.BinTableHDU(header=header, name=extname, ver=extver).from_columns(out_cols+new_cols)
         new_hdu = fits.BinTableHDU(new_table.data, header=header, name=extname, ver=extver)
         hdul.append(new_hdu)
+        times.append(time.time() - loop_start)
         yield hdul
+    print(f"AVG time per loop in extract : {time.time() - loop_start}")
+    print(f"time to run extract.py : {time.time() - time_start}")
 
 
 @cli.cli.command("extract")

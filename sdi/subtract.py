@@ -4,6 +4,9 @@ from astropy.io.fits import CompImageHDU
 from . import _cli as cli
 from .combine import combine
 
+import numpy as np
+import time
+
 def subtract(hduls, name="ALGN", method: ("ois", "numpy")="ois"):
     """
     Returns differences of a set of images from a template image
@@ -12,25 +15,33 @@ def subtract(hduls, name="ALGN", method: ("ois", "numpy")="ois"):
         name -- name of the HDU to use image that the other images will be subtracted from
         method -- method of subtraction. OIS is default (best/slow). Numpy is alternative (worse/quick)
     """
+    time_start = time.time()
+    times = []
     hduls = [h for h in hduls]
     outputs = []
     template = combine(hduls, name)["PRIMARY"].data # this is a temporary HDUL containing 1 PrimaryHDU with combined data
     if method == "ois":
         for i,hdu in enumerate(hduls):
+            loop_start = time.time()
             try:
                 diff = ois.optimal_system(image=hdu[name].data, refimage=template, method='Bramich')[0]
             except ValueError:
                 diff = ois.optimal_system(image=hdu[name].data.byteswap().newbyteorder(), refimage=template.byteswap().newbyteorder(), method='Bramich')[0]
             hdu.insert(1,CompImageHDU(data = diff, header =  hduls[i]['ALGN'].header, name = "SUB"))
             outputs.append(hdu)
+            times.append(time.time() - loop_start)
 
     elif method == "numpy":
         for i,hdu in enumerate(hduls):
+            loop_start = time.time()
             diff = template - hdu[name].data
             hdu.insert(1,CompImageHDU(data = diff, header =  hduls[i]['ALGN'].header, name = "SUB"))
             outputs.append(hdu)
+            times.append(time.time() - loop_start)
     else:
         raise ValueError(f"method {method} unknown!")
+    print(f"AVG time to subtract : {np.mean(times)}")
+    print(f"time to run subtract.py : {time.time() - time_start}")
     return (hdul for hdul in outputs)
 
 @cli.cli.command("subtract")

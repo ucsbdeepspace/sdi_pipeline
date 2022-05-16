@@ -15,6 +15,7 @@ from .snr_function import snr
 # from sources import Source
 from . import _cli as cli
 
+import time
 
 def align(hduls, name="SCI", ref=None):
     """
@@ -25,7 +26,7 @@ def align(hduls, name="SCI", ref=None):
     :param reference: index of refence image. Should be file with greatest SNR
     :return: list of FITS files with <name> HDU aligned
     """
-
+    time_start = time.time() # Timing 
     hduls_list = [hdul for hdul in hduls]
     # SNR function appends snr to each hdul's "CAT" table and returns list of hduls
     hduls_list = list(snr(hduls_list, name))
@@ -47,8 +48,9 @@ def align(hduls, name="SCI", ref=None):
         ref_data = reference.data
     except AttributeError:
         print("The reference file have doesn't have Attribute: Data")
-
+    times = []
     for hdul in hduls_list:
+        loop_start = time.time() # timing 
         np_src = hdul[name].data
         output = np.array([])
         try:
@@ -62,6 +64,9 @@ def align(hduls, name="SCI", ref=None):
             hdul[idx].data = output
             hdul[idx].header['EXTNAME'] = ("ALGN    ")
             hdul[idx].header = reference.header
+        times.append(time.time() - loop_start) # timing 
+    print(f"\nAVG time per align: {np.mean(times)}") # timing 
+    print(f"time to run align.py : {time.time()-time_start}") # timing
     return (hdul for hdul in hduls_list)
 
 
