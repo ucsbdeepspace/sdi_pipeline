@@ -83,6 +83,27 @@ def norm(ref_table,cat_table):
     
     return gaia_mag_transformed
 
+def ref_magerr(ref_mag, g_rp_g, g_bp_g):
+    ref_mag = ref_table['phot_g_mean_mag']
+    g_rp_g = ref_table["phot_rp_mean_mag"]
+    g_bp_g = ref_table["phot_bp_mean_mag"]
+    gaia_mag_err = 0.16497
+    for i,j,k in zip(range(0,len(ref_mag)),range(0,len(g_rp_g)),range(0,len(g_bp_g))):
+        if 25>ref_mag[i]>0.5  and 25>g_rp_g[j]>0.5  and 25>g_bp_g[k]>0.5:
+            ref_mag_err.append(np.sqrt((0.16497)**2+(0.4625*0.16497(g_bp_g[k]-g_rp_g[j])*0.16497)**2+(0.25171*2*0.16497(g_bp_g[k]-g_rp_g[j])*0.16497)**2+(0.021349*3*0.16497(g_bp_g[k]-g_rp_g[j])**2*0.16497)**2))
+        else:
+            ref_mag_err.append(np.nan)
+
+ 
+    return ref_mag_err
+#take partials*gaia err
+#ref_mag_err = np.array(ref_magerr(ref_table['phot_g_mean_mag'], ref_table["phot_rp_mean_mag"]
+#, ref_table["phot_bp_mean_mag"]))
+ref_mag_err = 0.16497
+#error function for propagating error through the fit
+#def error_prop(target_mag, magnitude_err, fit_slope,  parameter_err):
+#    return np.sqrt((target_mag*parameter_err)**2+(fit_slope*magnitude_err)**2)
+
 
 def photometry(x,y,a,b,sci_img):
     '''
@@ -133,7 +154,7 @@ ref_dec = ims[0]['REF'].data['dec']
 refcoord = SkyCoord(ref_ra,ref_dec,frame = 'icrs',unit='degree')
 
 #Then use _in_cone to see which stars are close to the target star
-#target_coord = SkyCoord(11.291,41.508, frame = 'icrs', unit = 'degree')
+target_coord = SkyCoord(11.291,41.508, frame = 'icrs', unit = 'degree')
 target_coord = SkyCoord(11.291,41.508, frame = 'icrs', unit = 'degree')
 comp_coords = find_ref(target_coord, refcoord) #in all images
 #%%
@@ -195,66 +216,87 @@ for im in range(0,len(ims)):
         t = sci_ims[im]['SCI'].header['OBSMJD']
         ts.append(np.array(t))
     #For multiple ref stars
-    try:
-        #gaia_mag_transformed, gaia_mag_err, gaia_flux_transformed, gaia_flux_err
-        ref_mag = [] #magnitudes for the reference stars in first image
-        bright_idx = []
-        ref_magerr = 0.16497
-        for i in range(0,len(comp_stars)):
-            mag_temp = norm(comp_stars[i],comp_sources[i])[im] #This can be made better, normalize once outside the for loop and then iterate
-            if mag_temp < 18: #This is just for GTAnd. This will change for other stars based on the target star's magnitude
-                ref_mag.append(mag_temp)
-                bright_idx.append(i)
-            else:
-                pass
-        comp_sources_new = np.array(comp_sources)[bright_idx]
-        #Using 'a' as a sloppy alternative to aperture. Maybe look into sep.kron_radius or flux_radius. aperture is a radius.
-        #Have to select index [0] for each mag to get just the numerical value without the description of the column object
-        
-        #For multiple ref stars
-        
-        #!TODO: Currently, comp_sources still have zeros? np.mean will not work anyway
-        instrumental_mag = []
-        in_magerr = []
-        for i in range(0,len(comp_sources_new)):
-            arr = photometry(comp_sources_new[i]['x'][im],comp_sources_new[i]['y'][im], comp_sources_new[i]['a'][im], comp_sources_new[i]['b'][im], sci_ims[im])
-            instrumental_mag.append(arr[0][0])
-            in_magerr.append(arr[1][0])
-        
-        #Performing the linear fit
-        #First find all places where there are non-nan values:
-        idx = np.where([np.isnan(r)==False for r in ref_mag])[0]
-        x = [instrumental_mag[i] for i in idx]
-        y = [ref_mag[i] for i in idx]
-        fit, sum_sq_resid, rank, singular_values, rcond = np.polyfit(x[1:], y[1:], 1, full=True)
-        fit_fn = np.poly1d(fit)
-        residuals = fit_fn(x)-y
-        #fig=plt.figure(figsize=(18, 16), dpi= 80, facecolor='w', edgecolor='k')
-        #plt.plot(x,y, 'yo', x, fit_fn(x), '--k')
-        #plt.show()        
-        # fit_fn is now a function which takes in x and returns an estimate for y, 
-        #Use the fit from above to calculate the target magnitude
-        target_inst_mag = photometry(target['x'][im],target['y'][im], target['a'][im], target['b'][im], sci_ims[im])[0][0]
-        target_mag.append(fit_fn(target_inst_mag))
-        target_magerr.append(np.std(residuals))
+    #gaia_mag_transformed, gaia_mag_err, gaia_flux_transformed, gaia_flux_err
+    ref_mag = [] #magnitudes for the reference stars in first image
+    bright_idx = []
+    ref_magerr = 0.16497
+    for i in range(0,len(comp_stars)):
+        mag_temp = norm(comp_stars[i],comp_sources[i])[im] #This can be made better, normalize once outside the for loop and then iterate
+        if mag_temp < 18: #This is just for GTAnd. This will change for other stars based on the target star's magnitude
+            ref_mag.append(mag_temp)
+            bright_idx.append(i)
+        else:
+            pass
+    comp_sources_new = np.array(comp_sources)[bright_idx]
+    #Using 'a' as a sloppy alternative to aperture. Maybe look into sep.kron_radius or flux_radius. aperture is a radius.
+    #Have to select index [0] for each mag to get just the numerical value without the description of the column object
 
-     
-    except ValueError:
-        #!TODO: correct error prop
-        #For one ref star, take the star, find the correction, and apply it to the rest of the image
-        instrumental_mag = photometry(comp_sources[0]['x'][im],comp_sources[0]['y'][im], comp_sources[0]['a'][im], comp_sources[0]['b'][im], sci_ims[im])[0][0]
-        in_magerr = photometry(comp_sources[0]['x'][im], comp_sources[0]['y'][im], comp_sources[0]['a'][im], comp_sources[0]['b'][im], sci_ims[im])[1][0]
-        corr = np.abs(instrumental_mag)-ref_mag[0]
-        target_inst_mag = photometry(target['x'][im],target['y'][im], target['a'][im], target['b'][im], sci_ims[im])[0][0]
-        target_mag.append(corr + target_inst_mag)
-        target_magerr.append(in_magerr)
-    
-#%%
-rows = zip(target_mag,target_magerr, ts)
+    #For multiple ref stars
 
+    #!TODO: Currently, comp_sources still have zeros? np.mean will not work anyway
+    instrumental_mag = []
+    in_magerr = []
+    for i in range(0,len(comp_sources_new)):
+        arr = photometry(comp_sources_new[i]['x'][im],comp_sources_new[i]['y'][im], comp_sources_new[i]['a'][im], comp_sources_new[i]['b'][im], sci_ims[im])
+        instrumental_mag.append(arr[0][0])
+        in_magerr.append(arr[1][0])
+
+    #Performing the linear fit
+    #First find all places where there are non-nan values:
+    idx = np.where([np.isnan(r)==False for r in ref_mag])[0]
+    x = [instrumental_mag[i] for i in idx]
+    y = [ref_mag[i] for i in idx]
+    fit, sum_sq_resid, rank, singular_values, rcond = np.polyfit(x[1:], y[1:], 1, full=True)
+    fit_fn = np.poly1d(fit)
+    residuals = fit_fn(x)-y
+    #fig=plt.figure(figsize=(18, 16), dpi= 80, facecolor='w', edgecolor='k')
+    #plt.plot(x,y, 'yo', x, fit_fn(x), '--k')
+    #plt.show()        
+    # fit_fn is now a function which takes in x and returns an estimate for y, 
+    #Use the fit from above to calculate the target magnitude
+    target_inst_mag = photometry(target['x'][im],target['y'][im], target['a'][im], target['b'][im], sci_ims[im])[0][0]
+    target_mag.append(fit_fn(target_inst_mag))
+    #target_magerr.append(np.std(residuals))
+
+    #defining the parameter error for the linear fit
+    coeff, cov = np.polyfit(x, y,1,cov = 'true')
+    parameter_err = np.array(np.sqrt(np.diag(cov)))
+    fit_err =np.array(parameter_err[0])
+    fit_slope =np.abs(np.poly1d(arr[0]))
+    fit_intercept =np.abs(np.poly1d(arr[1]))
+    int_err = np.array(parameter_err[1])
+# the original error function
+#    def mag_err1(targetmag):
+#        p_err = fit_err
+#        return p_err*targetmag
+#    def mag_err2(in_err):
+#        m = fit_slope
+#        return m* in_err
+#    err_1 = mag_err1(target_mag)
+#    err_2 = mag_err2(in_magerr)
+#    def err_prop1(e_1):
+#        return (e_1**2)
+#    def err_prop2(e_2):
+#        return (e_2**2)
+#    prop_1 = err_prop1(err_1)
+#    prop_2 = (err_prop2(err_2))
+#    for i in range(0, len(prop_2)):
+#        a = np.sqrt((prop_1+prop_2[i]))
+#    error = a
+#target_magerr = a
+
+#writing a new error function using relative uncertainties
+    def relative_u(sigma,x):
+        return sigma/(np.abs(x))
+    slope_u = relative_u(fit_err, fit_slope)
+    mag_u = relative_u(in_magerr, target_inst_mag)
+    for i in range(0,len(mag_u)):
+        a = np.sqrt(mag_u[i]**2+slope_u**2)
+    error = a*(target_mag - fit_intercept)
+target_magerr = error
+rows =zip(target_mag,target_magerr, ts)
 import csv
-
-with open('var_bright_test.csv', "w") as f:
+with open("var_bright_test.csv","w") as f:
     writer = csv.writer(f)
     for row in rows:
         writer.writerow(row)
