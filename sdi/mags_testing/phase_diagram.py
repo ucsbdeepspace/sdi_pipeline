@@ -69,7 +69,7 @@ lc_PTF.lombscargle()
 lc_PTF.phase_fold()
 
 
-data_SDI = np.genfromtxt('85.csv',delimiter=',')
+data_SDI = np.genfromtxt('5.csv',delimiter=',')
 t = []
 mag = []
 magerr_SDI = []
@@ -156,7 +156,7 @@ print(lc_PTF.period)
 #plt.errorbar(lc_PTF.phase, lc_PTF.folded_flux,yerr = magerr_PTF,fmt = 'r*', label = 'PTF data')
 plt.errorbar(lc_SDI.phase, lc_SDI.folded_flux, yerr = None ,fmt = 'b*', label = 'SDI data')
 plt.legend()
-plt.title('Phase diagram for a random star from our catalog')
+plt.title('Phase diagram for star 5 from our catalog')
 plt.xlabel('Phase')
 plt.ylabel('Magnitude')
 plt.show()

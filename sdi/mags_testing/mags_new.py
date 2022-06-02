@@ -204,18 +204,6 @@ ref_in_cat = [cluster_search_radec(cat_source, coord.ra.deg, coord.dec.deg) for 
 ref_in_ref = [cluster_search_radec(ref_source, coord.ra.deg, coord.dec.deg) for coord in comp_coords_new]
 targets = [cluster_search_radec(cat_source, t.ra.deg, t.dec.deg) for t in target_coord]
 del comp_coords_new
-#%% 12
-#Remove all the images for which the target star could not be found by removing places that have zeroes
-targets = [cluster_search_radec(cat_source, t.ra.deg, t.dec.deg) for t in target_coord]
-targets_new = []
-for target in targets:
-    t_idx = np.where(target['x']!=0)
-    target = target[t_idx]
-    targets_new.append(target)
-    #next remove those indices in all the comp stars and sources
-    comp_stars = [ref_in_ref[i][t_idx] for i in range(0,len(ref_in_ref))]
-    comp_sources = [ref_in_cat[i][t_idx] for i in range(0,len(ref_in_cat))]
-del target_coord
 #%% 13
 #Now check for zero x, y, and a in the comp stars. If there are zero values, remove the comp source entirely
 c_idx = []
@@ -239,7 +227,6 @@ for mag in mag_temp:
 ref_mag = [r[0] for r in ref_mag]
 comp_sources_new = np.array(comp_sources)[bright_idx]
 del bright_idx, mag_temp, comp_sources,  comp_stars, mag
-#%%
 """For one target star
 #Do photometry on all of the ref sources
 import timeit
@@ -298,9 +285,9 @@ for im in sci_ims:
     residuals = fit_fn(x)-y
     del rank, singular_values, rcond, sum_sq_resid,x ,y,idx,instrumental_mag, im
     fits.append(fit)
-    fig=plt.figure(figsize=(18, 16), dpi= 80, facecolor='w', edgecolor='k')
-    plt.plot(x,y, 'yo', x, fit_fn(x), '--k')
-    plt.show()
+    #fig=plt.figure(figsize=(18, 16), dpi= 80, facecolor='w', edgecolor='k')
+    #plt.plot(x,y, 'yo', x, fit_fn(x), '--k')
+    #plt.show()
     #fit_fn is now a function which takes in x and returns an estimate for y, 
     #Use the fit from above to calculate the target magnitude
 elapsed = timeit.default_timer() - start_time
@@ -308,12 +295,13 @@ print(elapsed)
 #%%
 #Applying the fits to each target star
 import csv
-for target in targets:
+for idx, target in enumerate(targets):
     t_idx = np.where(target['x']!=0)
     targets_new = np.array(target[t_idx])
     sci_ims_new = [sci_ims[t] for t in t_idx[0]]
     fits_new = [fits[t] for t in t_idx[0]]
     ts_new = ts[t_idx]
+    print(targets_new['ra'][0],targets_new['dec'][0])
     target_mag = []
     for im in sci_ims_new:
         idx_im = sci_ims_new.index(im)
@@ -323,7 +311,8 @@ for target in targets:
         target_mag.append(fit_fn(target_inst_mag))
         del target_inst_mag
     rows = zip(target_mag, ts_new)
-    with open(str(idx_im)+'.csv', "w") as f:
+    with open(str(idx)+'.csv', "w") as f:
         writer = csv.writer(f)
         for row in rows:
             writer.writerow(row)
+    print('done!')
