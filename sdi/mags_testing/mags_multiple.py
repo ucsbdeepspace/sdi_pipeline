@@ -30,7 +30,7 @@ def _in_cone(coord: SkyCoord, cone_center: SkyCoord, cone_radius: u.degree):
     # The 0.0001 so we don't get edge effects
     return d < (cone_radius ** 2)
 
-def find_ref(target: SkyCoord, refcoord: SkyCoord, threshold: u.degree = u.Quantity(0.05, u.deg)):
+def find_ref(target: SkyCoord, refcoord: SkyCoord, threshold: u.degree = u.Quantity(0.06, u.deg)):
     ref_comp = []
     for coord in refcoord:
         try:
@@ -231,6 +231,7 @@ for target_coord in target_coords:
             fit, sum_sq_resid, rank, singular_values, rcond = np.polyfit(x[1:], y[1:], 1, full=True)
             fit_fn = np.poly1d(fit)
             residuals = fit_fn(x)-y
+            print(len(y))
             '''
             fig=plt.figure(figsize=(18, 16), dpi= 80, facecolor='w', edgecolor='k')
             plt.plot(x,y, 'yo', x, fit_fn(x), '--k')

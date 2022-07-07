@@ -216,7 +216,6 @@ for im in range(0,len(ims)):
         t = sci_ims[im]['SCI'].header['OBSMJD']
         ts.append(np.array(t))
     #For multiple ref stars
-
     #gaia_mag_transformed, gaia_mag_err, gaia_flux_transformed, gaia_flux_err
     ref_mag = [] #magnitudes for the reference stars in first image
     bright_idx = []
