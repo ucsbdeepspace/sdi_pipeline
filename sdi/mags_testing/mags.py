@@ -241,6 +241,7 @@ for im in range(0,len(ims)):
         arr = photometry(comp_sources_new[i]['x'][im],comp_sources_new[i]['y'][im], comp_sources_new[i]['a'][im], comp_sources_new[i]['b'][im], sci_ims[im])
         instrumental_mag.append(arr[0][0])
         in_magerr.append(arr[1][0])
+        
 
     #Performing the linear fit
     #First find all places where there are non-nan values:
@@ -256,6 +257,8 @@ for im in range(0,len(ims)):
     # fit_fn is now a function which takes in x and returns an estimate for y, 
     #Use the fit from above to calculate the target magnitude
     target_inst_mag = photometry(target['x'][im],target['y'][im], target['a'][im], target['b'][im], sci_ims[im])[0][0]
+    #target_magerr = residuals
+
     target_mag.append(fit_fn(target_inst_mag))
     #target_magerr.append(np.std(residuals))
 
@@ -263,8 +266,8 @@ for im in range(0,len(ims)):
     coeff, cov = np.polyfit(x, y,1,cov = 'true')
     parameter_err = np.array(np.sqrt(np.diag(cov)))
     fit_err =np.array(parameter_err[0])
-    fit_slope =np.abs(np.poly1d(arr[0]))
-    fit_intercept =np.abs(np.poly1d(arr[1]))
+    fit_slope =np.abs(coeff[0])
+    fit_intercept =np.abs(coeff[1])
     int_err = np.array(parameter_err[1])
 # the original error function
 #    def mag_err1(targetmag):
@@ -290,11 +293,24 @@ for im in range(0,len(ims)):
     def relative_u(sigma,x):
         return sigma/(np.abs(x))
     slope_u = relative_u(fit_err, fit_slope)
-    mag_u = relative_u(in_magerr, target_inst_mag)
-    for i in range(0,len(mag_u)):
-        a = np.sqrt(mag_u[i]**2+slope_u**2)
-    error = a*(target_mag - fit_intercept)
-target_magerr = error
+    mag_u = np.mean(relative_u(in_magerr, target_inst_mag))
+    #for i in range(0,len(mag_u)):
+    #    a = np.sqrt(mag_u[i]**2+slope_u**2)
+    def err(mag, slope):
+        return np.sqrt(mag**2+slope**2)
+    mx_err = err(mag_u, slope_u)
+    def corr(err, slope, mag):
+        return err*slope*mag
+    part_err = corr(mx_err, fit_slope, target_inst_mag)
+    def add(err):
+        b = int_err
+        return np.sqrt(err**2+b**2)/2
+    err = add(part_err)
+    target_magerr.append(err)
+#target_magerr = err    
+#target_magerr = err    
+    
+#target_magerr = magerr
 rows =zip(target_mag,target_magerr, ts)
 import csv
 with open("var_bright_test.csv","w") as f:
