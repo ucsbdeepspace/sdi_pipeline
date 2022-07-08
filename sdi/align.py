@@ -9,12 +9,12 @@ HISTORY
 import click
 import numpy as np
 import astroalign
+import time
 from .snr_function import snr
 # from _scripts import snr
 # from astropy.io.fits import CompImageHDU
 # from sources import Source
 from . import _cli as cli
-
 
 def align(hduls, name="SCI", ref=None):
     """
@@ -26,8 +26,14 @@ def align(hduls, name="SCI", ref=None):
     :return: list of FITS files with <name> HDU aligned
     """
 
+    print(" ")
+    print("Beginning Alignment")
+    start = time.perf_counter()
+    fits_files = hduls
     hduls_list = [hdul for hdul in hduls]
-    # SNR function appends snr to each hdul's "CAT" table and returns list of hduls
+    # for i in hduls_list: #Remove before pushing
+    #     print(i.info())
+    #SNR function appends snr to each hdul's "CAT" table and returns list of hduls
     hduls_list = list(snr(hduls_list, name))
     # No reference index given. we establish reference based on best signal to noise ratio
     if ref is None:
@@ -48,7 +54,7 @@ def align(hduls, name="SCI", ref=None):
     except AttributeError:
         print("The reference file have doesn't have Attribute: Data")
 
-    for hdul in hduls_list:
+    for i, hdul in enumerate(hduls_list):
         np_src = hdul[name].data
         output = np.array([])
         try:
@@ -62,6 +68,10 @@ def align(hduls, name="SCI", ref=None):
             hdul[idx].data = output
             hdul[idx].header['EXTNAME'] = ("ALGN    ")
             hdul[idx].header = reference.header
+    stop = time.perf_counter()
+    print("Alignment Complete")
+    print("Time Elapsed: {} sec".format(round(stop-start, 4)))
+
     return (hdul for hdul in hduls_list)
 
 
