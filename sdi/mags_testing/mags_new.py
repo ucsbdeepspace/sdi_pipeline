@@ -167,9 +167,10 @@ refcoord = SkyCoord(ref_ra,ref_dec,frame = 'icrs',unit='degree')
 del ref_ra, ref_dec
 #%% 7
 #Then use _in_cone to see which stars are close to the target star
-#target_coord = SkyCoord(11.291,41.508, frame = 'icrs', unit = 'degree')
+#target_coord =[SkyCoord(11.291,41.508, frame = 'icrs', unit = 'degree'),SkyCoord(11.291,41.508, frame = 'icrs', unit = 'degree'),SkyCoord(11.291,41.508, frame = 'icrs', unit = 'degree'),SkyCoord(11.291,41.508, frame = 'icrs', unit = 'degree'),SkyCoord(11.291,41.508, frame = 'icrs', unit = 'degree'),SkyCoord(11.291,41.508, frame = 'icrs', unit = 'degree')]
 cat_ra = ims[0]['CAT'].data['ra'][0:6]
 cat_dec = ims[0]['CAT'].data['dec'][0:6]
+#print(cat_ra, cat_dec, "viola")
 target_coord = SkyCoord(cat_ra,cat_dec, frame = 'icrs', unit = 'degree')
 del cat_ra, cat_dec, ims
 #%% 8
@@ -276,12 +277,21 @@ for im in sci_ims:
         instrumental_mag.append(i_mag[0][0])
         ref_in_magerr.append(i_mag[1][0])
         del i_mag
-    del ref_in_magerr
+    #commenting out for error del ref_in_magerr
     idx = np.where([np.isnan(r)==False for r in ref_mag])[0]
     x = [instrumental_mag[i] for i in idx]
     y = [ref_mag[i] for i in idx]
     fit, sum_sq_resid, rank, singular_values, rcond = np.polyfit(x[1:], y[1:], 1, full=True)
     fit_fn = np.poly1d(fit)
+
+    #defining the parameter error for the linear fit
+    coeff, cov = np.polyfit(x[1:], y[1:],1,cov = 'true')
+    parameter_err = np.array(np.sqrt(np.diag(cov)))
+    fit_err =np.array(parameter_err[0])
+    fit_slope =np.abs(coeff[0])
+    fit_intercept =np.abs(coeff[1])
+    int_err = np.array(parameter_err[1])
+
     residuals = fit_fn(x)-y
     del rank, singular_values, rcond, sum_sq_resid,x ,y,idx,instrumental_mag, im
     fits.append(fit)
@@ -293,6 +303,7 @@ for im in sci_ims:
 elapsed = timeit.default_timer() - start_time
 print(elapsed)
 #%%
+target_magerr = []
 #Applying the fits to each target star
 import csv
 for idx, target in enumerate(targets):
@@ -309,8 +320,31 @@ for idx, target in enumerate(targets):
         fit = fits_new[idx_im]
         fit_fn = np.poly1d(fit)
         target_mag.append(fit_fn(target_inst_mag))
+        #del target_inst_mag
+    #error propagation
+    #target_inst_mag = photometry(targets_new['x'][idx_im],targets_new['y'][idx_im], targets_new['a'][idx_im],targets_new['b'][idx_im], sci_ims_new[idx_im])[0][0]
+        def relative_u(sigma,x):
+            return sigma/(np.abs(x))
+        slope_u = relative_u(fit_err, fit_slope)
+        mag_u = np.mean(relative_u(ref_in_magerr, target_inst_mag))
+    #for i in range(0,len(mag_u)):
+     #   a = np.sqrt(mag_u[i]**2+slope_u**2)
+        def err(mag, slope):
+            return np.sqrt(mag**2+slope**2)
+        mx_err = err(mag_u, slope_u)
+        def corr(err, slope, mag):
+            return err*slope*mag
+        part_err = corr(mx_err, fit_slope, target_inst_mag)
+        def add(err):
+            b = int_err
+            return np.sqrt(err**2+b**2)/2
+        err = add(part_err)
+        target_magerr.append(err)
         del target_inst_mag
-    rows = zip(target_mag, ts_new)
+    #target_magerr.append(err)
+
+    rows = zip(target_mag,target_magerr, ts_new)
+    #rows = zip(target_mag, ts_new)
     with open(str(idx)+'.csv', "w") as f:
         writer = csv.writer(f)
         for row in rows:
