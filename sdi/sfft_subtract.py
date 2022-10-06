@@ -54,19 +54,18 @@ def sfft_subtract(hduls, name="ALGN", method: ("Crowded, Sparse, None") = "None"
     print("Method = SFFT")
     if method == "None":
         #Create a temporary fits file to hold the empty mask (Assuming data already has bad pixels removed)
-        temp_mask = np.zeros(hduls[0][name].data.shape)
-        temp_mask.fill(1)
+        temp_mask = np.full(hduls[0][name].data.shape, 1)
         temp_hdu = fits.PrimaryHDU(temp_mask)
         temp_hdul = fits.HDUList([temp_hdu])
         temp_hdul.writeto('temp_mask.fits', overwrite = True)
         for i, fits_name in enumerate(temp_image_fits_filenames):       
             sol, diff = Customized_Packet.CP(FITS_REF = "temp_ref.fits", FITS_SCI = fits_name, 
                                     FITS_mREF = 'temp_mask.fits', FITS_mSCI = 'temp_mask.fits',
-                                    ForceConv = "REF", GKerHW = 4)    
+                                    ForceConv = "REF", GKerHW = 4, BGPolyOrder = 0, KerPolyOrder = 0)    
             hdul = fits.open(fits_name)
             hdul.insert(1,CompImageHDU(data = diff, header =  hdul['ALGN'].header, name = "SUB"))
             outputs.append(hdul)
-
+	#TODO Make Crowded Work for our Files
     elif method == 'Crowded':
         for i, fits_name in enumerate(temp_image_fits_filenames):
             prep, sol, diff = Easy_CrowdedPacket.ECP(FITS_REF = "temp_ref.fits", FITS_SCI = fits_name)
@@ -74,6 +73,7 @@ def sfft_subtract(hduls, name="ALGN", method: ("Crowded, Sparse, None") = "None"
             hdul.insert(1,CompImageHDU(data = diff, header =  hdul['ALGN'].header, name = "SUB"))
             outputs.append(hdul)
 
+	#TODO Make Sparse Work for our Files
     elif method == "Sparse":
         for i, fits_name in enumerate(temp_image_fits_filenames):
             prep, sol, diff = Easy_SparsePacket.ESP(FITS_REF = "temp_ref.fits", FITS_SCI = fits_name)
@@ -86,18 +86,18 @@ def sfft_subtract(hduls, name="ALGN", method: ("Crowded, Sparse, None") = "None"
     print("Subtraction Complete")
     print("Time Elapsed: {} sec".format(round(stop-start, 4)))
     
-# Remove Temporary Fits files from disc    
-    # print("Removing Temporary Fits Files")
-    # for i, fits_name in enumerate(temp_image_fits_filenames):
-    #     if os.path.exists(fits_name):
-    #         os.remove(fits_name)
-    #     else:
-    #         print("{} does not exist".format(fits_name))
-    # if os.path.exists("temp_ref.fits"):
-    #         os.remove("temp_ref.fits")
-    # else:
-    #     print("temp_ref.fits does not exist")
-    # print("Removal Complete")
+#Remove Temporary Fits files from disc    
+    print("Removing Temporary Fits Files")
+    for i, fits_name in enumerate(temp_image_fits_filenames):
+        if os.path.exists(fits_name):
+            os.remove(fits_name)
+        else:
+            print("{} does not exist".format(fits_name))
+    if os.path.exists("temp_ref.fits"):
+            os.remove("temp_ref.fits")
+    else:
+        print("temp_ref.fits does not exist")
+    print("Removal Complete")
     return (hdul for hdul in outputs)
 
 @cli.cli.command("sfft_subtract")
