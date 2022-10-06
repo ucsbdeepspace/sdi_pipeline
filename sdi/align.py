@@ -10,19 +10,19 @@ import click
 import numpy as np
 import astroalign
 import time
-from .snr_function import snr
+from _scripts import snr
 # from _scripts import snr
 # from astropy.io.fits import CompImageHDU
 # from sources import Source
 from . import _cli as cli
 
-def align(hduls, name="SCI", ref=None):
+def align(hduls, name="SCI", ref = None):
     """
     Aligns the source astronomical image(s) to the reference astronomical image
     \b
     :param hduls: list of fitsfiles
     :param name: header containing image data.
-    :param reference: index of refence image. Should be file with greatest SNR
+    :param reference: index of refence image. Defaults to index of image with highest SNR
     :return: list of FITS files with <name> HDU aligned
     """
 
@@ -31,13 +31,13 @@ def align(hduls, name="SCI", ref=None):
     start = time.perf_counter()
     fits_files = hduls
     hduls_list = [hdul for hdul in hduls]
-    # for i in hduls_list: #Remove before pushing
-    #     print(i.info())
-    #SNR function appends snr to each hdul's "CAT" table and returns list of hduls
-    hduls_list = list(snr(hduls_list, name))
+
     # No reference index given. we establish reference based on best signal to noise ratio
     if ref is None:
-
+        print(" ")
+        print("Determining Image with greatest SNR")
+        #SNR function appends snr to each hdul's "CAT" table and returns list of hduls
+        hduls_list = list(snr(hduls_list, name))
         reference = hduls_list[0][name]  # 0th index reference is used by default
         ref_snr = hduls_list[0]["CAT"].header["SNR"]
 
@@ -47,13 +47,17 @@ def align(hduls, name="SCI", ref=None):
         reference = hdul[name]
 
     else:  # ref index is provided
+        ref = int(ref)
         reference = hduls_list[ref][name]
 
     try:
         ref_data = reference.data
     except AttributeError:
         print("The reference file have doesn't have Attribute: Data")
-
+    
+    # ref_data = hduls_list[0][name].data
+    # reference = hduls_list[0][name]
+    
     for i, hdul in enumerate(hduls_list):
         np_src = hdul[name].data
         output = np.array([])
@@ -77,6 +81,7 @@ def align(hduls, name="SCI", ref=None):
 
 @cli.cli.command("align")
 @click.option("-n", "--name", default="SCI", help="The HDU to be aligned.")
+@click.option("-r", "--ref", default=None, help="Reference Image either the image number or image with highest SNR if None.")
 @cli.operator
 # TODO: use CAT sources if they exist
 

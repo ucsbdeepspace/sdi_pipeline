@@ -4,10 +4,9 @@ import ois
 from astropy.io.fits import CompImageHDU
 from . import _cli as cli
 from .combine import combine
-from . import zogy_kyle_edit as zogy
 import time
 
-def subtract(hduls, name="ALGN", method: ("ois", "numpy", "zogy") ="ois"):
+def subtract(hduls, name="ALGN", method: ("ois", "numpy", "properimage") ="properimage"):
     """
     Returns differences of a set of images from a template image
     Arguments:
@@ -17,8 +16,8 @@ def subtract(hduls, name="ALGN", method: ("ois", "numpy", "zogy") ="ois"):
     """
     hduls = [h for h in hduls]
     outputs = []
-    template = combine(hduls, name)["PRIMARY"].data # this is a temporary HDUL containing 1 PrimaryHDU with combined data ## Align is the reference image here??
-    template_fits = combine(hduls, name)["PRIMARY"]
+    template_fits = combine(hduls, name)
+    template =template_fits["PRIMARY"].data # this is a temporary HDUL containing 1 PrimaryHDU with combined data ## Align is the reference image here??
     print(" ")
     print("Beginning Subtraction")
     start = time.perf_counter()
@@ -37,18 +36,12 @@ def subtract(hduls, name="ALGN", method: ("ois", "numpy", "zogy") ="ois"):
             diff = template - hdu[name].data
             hdu.insert(1,CompImageHDU(data = diff, header =  hduls[i]['ALGN'].header, name = "SUB"))
             outputs.append(hdu)
-
-    elif method == "zogy":
-        print("Method = ZOGY")
+    elif method == "properimage":
+        print("Method = ProperImage")
         for i,hdu in enumerate(hduls):
-            diff = zogy.optimal_subtraction(new_fits= hdu[name],      ref_fits=template_fits,
-                        new_fits_mask=None, ref_fits_mask=None,
-                        set_file='set_zogy', logfile=None,
-                        redo_new=None, redo_ref=None,
-                        verbose=None, nthreads=5, telescope='ML1',
-                        keep_tmp=None)
+            diff = template - hdu[name].data
             hdu.insert(1,CompImageHDU(data = diff, header =  hduls[i]['ALGN'].header, name = "SUB"))
-            outputs.append(hdu)
+            outputs.append(hdu)		
     else:
         raise ValueError(f"method {method} unknown!")
     stop = time.perf_counter()
@@ -62,7 +55,7 @@ def subtract(hduls, name="ALGN", method: ("ois", "numpy", "zogy") ="ois"):
 @cli.operator
 
 ## subtract function wrapper
-def subtract_cmd(hduls, name="ALGN", method="ois"):
+def subtract_cmd(hduls, name="ALGN", method="properimage"):
     """
     Returns differences of a set of images from a template image\n
     Arguments:\n

@@ -38,7 +38,7 @@ def write(hduls, directory, format_):
     for i, h in enumerate(hduls):
         path = os.path.join(directory, format_.format(number=i))
         click.echo(f"writing hdul to {path}")
-        h.writeto(path)
+        h.writeto(path, overwrite = True)
     return hduls
 
 @cli.cli.command("write")
