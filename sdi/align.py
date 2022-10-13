@@ -61,6 +61,7 @@ def align(hduls, name="SCI", ref = None):
     for i, hdul in enumerate(hduls_list):
         np_src = hdul[name].data
         output = np.array([])
+        print("Aligning {} / {}".format(i + 1, len(hduls_list)), end = "\r")
         try:
             output = astroalign.register(np_src, ref_data)[0]
         except ValueError:

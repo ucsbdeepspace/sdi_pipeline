@@ -53,19 +53,18 @@ def sfft_subtract(hduls, name="ALGN", method: ("Crowded, Sparse, None") = "None"
     start = time.perf_counter()
     print("Method = SFFT")
     if method == "None":
-        #Create a temporary fits file to hold the empty mask (Assuming data already has bad pixels removed)
-        temp_mask = np.full(hduls[0][name].data.shape, 1)
-        temp_hdu = fits.PrimaryHDU(temp_mask)
-        temp_hdul = fits.HDUList([temp_hdu])
-        temp_hdul.writeto('temp_mask.fits', overwrite = True)
+        #TODO Incorperate input masks for when we take real data
         for i, fits_name in enumerate(temp_image_fits_filenames):       
             sol, diff = Customized_Packet.CP(FITS_REF = "temp_ref.fits", FITS_SCI = fits_name, 
-                                    FITS_mREF = 'temp_mask.fits', FITS_mSCI = 'temp_mask.fits',
-                                    ForceConv = "REF", GKerHW = 4, BGPolyOrder = 0, KerPolyOrder = 0)    
+                                    FITS_mREF = 'temp_ref.fits', FITS_mSCI = fits_name,
+                                    ForceConv = "REF", GKerHW = 4, BGPolyOrder = 2, KerPolyOrder = 2)    
             hdul = fits.open(fits_name)
-            hdul.insert(1,CompImageHDU(data = diff, header =  hdul['ALGN'].header, name = "SUB"))
+            if np.isnan(np.sum(diff)) == True:
+                raise ValueError("Residual contains NaN")
+            else:
+                hdul.insert(1,CompImageHDU(data = diff, header =  hdul['ALGN'].header, name = "SUB"))
             outputs.append(hdul)
-	#TODO Make Crowded Work for our Files
+    #TODO Make Crowded Work for our Files
     elif method == 'Crowded':
         for i, fits_name in enumerate(temp_image_fits_filenames):
             prep, sol, diff = Easy_CrowdedPacket.ECP(FITS_REF = "temp_ref.fits", FITS_SCI = fits_name)
@@ -73,7 +72,7 @@ def sfft_subtract(hduls, name="ALGN", method: ("Crowded, Sparse, None") = "None"
             hdul.insert(1,CompImageHDU(data = diff, header =  hdul['ALGN'].header, name = "SUB"))
             outputs.append(hdul)
 
-	#TODO Make Sparse Work for our Files
+    #TODO Make Sparse Work for our Files
     elif method == "Sparse":
         for i, fits_name in enumerate(temp_image_fits_filenames):
             prep, sol, diff = Easy_SparsePacket.ESP(FITS_REF = "temp_ref.fits", FITS_SCI = fits_name)
