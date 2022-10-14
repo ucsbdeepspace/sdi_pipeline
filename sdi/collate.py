@@ -148,6 +148,34 @@ def collate(hduls, name="CAT", tablename="OBJ", coords = ["x", "y", "flux"], alg
     cluster_ratio(hduls, name, tablename)
     return (hdul for hdul in hduls)
 
+#cluster analysis tools
+def hdultocluster(hduls, name="CAT", tablename="OBJ"):
+    t1 = time.perf_counter()
+    data = [hdul[name].data for hdul in hduls]
+    datatype = data[0].dtype
+    clusters = [np.zeros(len(hduls), dtype=datatype) for i in range(len(hduls[0][tablename].data))]
+    for i in range(len(hduls)):
+        imdata = data[i]
+        indexes = hduls[i][tablename].data
+        for j in range(len(indexes)):
+            index = indexes[j][0]
+            if index != -1:
+                for k in range(len(datatype)):
+                    clusters[j][i][k] = imdata[index][k]
+    t2 = time.perf_counter()
+    print(t2-t1)
+    return clusters
+
+def cluster_search_radec(clusters, ra, dec):
+    means = [[cluster_mean(cluster, 'ra'), cluster_mean(cluster, 'dec')] for cluster in clusters]
+    dist = np.inf
+    smallest = None
+    for i in range(len(means)):
+        if dist_func(means[i], [ra,dec]) < dist:
+            dist = dist_func(means[i], [ra,dec])
+            smallest = i
+    return clusters[smallest]
+
 @cli.cli.command("collate")
 @click.option("-n", "--name", default="CAT", help="name of HDU for each HDUL containing catalog of sources")
 @click.option("-t", "--tablename", default="OBJ", help="name of TableHDU to store cluster data")
