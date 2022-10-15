@@ -77,18 +77,23 @@ def norm(ref_table, cat_table):
     g_bp_g = ref_table["phot_bp_mean_mag"]
 
     gaia_mag_err = 0.16497
+    r_err=0.066739
     #Making sure that all three values are present for calculating transformed mag
     gaia_mag_transformed = []
+    r_transformed = []
     for i,j,k in zip(range(0,len(ref_mag)),range(0,len(g_rp_g)),range(0,len(g_bp_g))):
         if 25>ref_mag[i]>0.5  and 25>g_rp_g[j]>0.5  and 25>g_bp_g[k]>0.5:
             #transforming reference magnitudes to SDSS12 g
             gaia_mag_transformed.append(ref_mag[i]-0.13518+0.4625*(g_bp_g[k]-g_rp_g[j])+0.25171*(g_bp_g[k]-g_rp_g[j])**2-0.021349*(g_bp_g[k]-g_rp_g[j])**3)
+            r_transformed.append(ref_mag[i]+0.12879-0.24662*(g_bp_g[k]-g_rp_g[j])+0.027464*(g_bp_g[k]-g_rp_g[j])**2+0.049465*(g_bp_g[k]-g_rp_g[j])**3)
         else:
             gaia_mag_transformed.append(np.nan)
+            r_transformed.append(nan)
 
     gaia_mag_transformed = np.array(gaia_mag_transformed)
+    r_transformed=np.array(r_transformed)
 
-    return gaia_mag_transformed
+    return gaia_mag_transformed, r_transformed
 
 def mags(hduls, read_ext="SCI", read_cat="XRT"):
     #TODO: right now these are not compatible with a single source
@@ -153,7 +158,7 @@ def mags(hduls, read_ext="SCI", read_cat="XRT"):
         comp_sources = np.array(comp_sources)[c_idx]
         comp_stars = np.array(comp_stars)[c_idx]
         #For multiple reference stars
-        mag_temp = [norm(i,j)[0] for i,j in zip(comp_stars,comp_sources)]
+        mag_temp, r_temp = [norm(i,j)[0] for i,j in zip(comp_stars,comp_sources)]
         target_mag = []
         target_magerr = []
         ts = []
@@ -184,6 +189,7 @@ def mags(hduls, read_ext="SCI", read_cat="XRT"):
                     pass
             instrumental_mag = np.array(instrumental_mag)[bright_idx]
             ref_mag = np.array(mag_temp)[bright_idx]
+            r_ref_mag = np.array(r_mag)[bright_idx]
             #Using 'a' as a sloppy alternative to aperture. Maybe look into sep.kron_radius or flux_radius. aperture is a radius.
             #Have to select index [0] for each mag to get just the numerical value without the description of the column object
 
@@ -193,6 +199,13 @@ def mags(hduls, read_ext="SCI", read_cat="XRT"):
             idx = np.where([np.isnan(r)==False for r in ref_mag])[0]
             x = [instrumental_mag[i] for i in idx]
             y = [ref_mag[i] for i in idx]
+            r = [r_ref_mag[i] for i in idx]
+            
+            def fit_eqn(flux, zp, a1, a2, a3,  a4, a5, t, t_m, exp_time):#flux is the x axis
+                -2.5*np.log10(flux)+zp = -g+a1*(g-r)+a2*air_mass+a3*air_mass*(g-r)+a4*(t-t_m)+a5*(t-t_m)**2 - 2.5*np.log10(exp_time)
+            
+            from scipy.optimize import curve_fit
+            
             fit, sum_sq_resid, rank, singular_values, rcond = np.polyfit(x[1:], y[1:], 1, full=True)
             fit_fn = np.poly1d(fit)
             residuals = fit_fn(x)-y
