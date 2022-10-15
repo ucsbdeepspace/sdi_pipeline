@@ -90,7 +90,7 @@ def norm(ref_table, cat_table):
 
     return gaia_mag_transformed
 
-def mags(hduls, read_ext="SCI", read_cat="XRT"):
+def mags(hduls, read_ext="ALGN", read_cat="XRT"):
     #TODO: right now these are not compatible with a single source
     #TODO: Need to make this entire function compatible with SUB hdu
     #Start by retrieveing radec for all reference stars
@@ -105,7 +105,7 @@ def mags(hduls, read_ext="SCI", read_cat="XRT"):
         sci_ims = hdul[read_ext].data
 
         ref_ra = hdul['REF'].data['ra']
-        ref_dec = hdul[0]['REF'].data['dec']
+        ref_dec = hdul['REF'].data['dec']
         refcoord = SkyCoord(ref_ra,ref_dec,frame = 'icrs',unit='degree')
 
         #Then use _in_cone to see which stars are close to the target star
@@ -113,7 +113,11 @@ def mags(hduls, read_ext="SCI", read_cat="XRT"):
         #target_coord = SkyCoord(11.291,41.508, frame = 'icrs', unit = 'degree')
         #comp_coords = find_ref(target_coord, refcoord) #in all images
 
-        target_coords.append(SkyCoord(cat.data['ra'], cat.data['dec'], frame="icrs", unit='degree'))
+        print(cat)
+        print(cat['x'])
+        #target_coords.append(SkyCoord(cat.data['ra'], cat.data['dec'], frame="icrs", unit='degree'))
+        w = WCS(hdul[read_ext].header)
+        target_coords.append(w.pixel_to_world(cat['x'], cat['y']))
 
     #Find the comp_stars in the ref hdu
     ref_source = hdultocluster(hduls, name="REF", tablename="ROBJ")
@@ -233,13 +237,13 @@ def mags(hduls, read_ext="SCI", read_cat="XRT"):
 
 
 @cli.cli.command("mags")
-@click.option("-i", "--image", default="SCI", help="The image to do photometry on.")
+@click.option("-i", "--image", default="ALGN", help="The image to do photometry on.")
 @click.option("-c", "--catalog", default="XRT", help="The catalog that the function is referencing the source to.")
 @cli.operator
 
 ## mags function wrapper
 
-def mags_cmd(hduls, image="SCI", catalog="XRT"):
+def mags_cmd(hduls, image="ALGN", catalog="XRT"):
     """
     Generates photometry information for designated sources.
     """
