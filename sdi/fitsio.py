@@ -3,7 +3,7 @@ fitsio -- this module contains the read and write function
 """
 
 import glob
-from tkinter.filedialog import askdirectory
+import tkinter.filedialog
 import sys
 import click
 from astropy.io import fits
@@ -62,10 +62,13 @@ def read_cmd(directory):
     """
     # add try (evaluate if the try is efficient)
     if directory is None:
+        root = tkinter.Tk()
+        root.overrideredirect(1)
+        root.withdraw()
         try:
-            directory = askdirectory()
+            directory = tkinter.filedialog.askdirectory(title = "Select fits directory")
         except:
-            click.echo("Visual file dialog does not exist, please use option -d and specify path to directory to read fitsfiles.", err=True)
+            click.echo("Visual file dialog failed, please use option -d and specify path to directory to read fitsfiles.", err=True)
             sys.exit()
     hduls = read(directory)
     if hduls:
