@@ -8,12 +8,100 @@ HISTORY
 """
 import click
 import numpy as np
+import multiprocessing as mp
+from multiprocessing import shared_memory
+import os
 import astroalign
-from .snr_function import snr
+#from .snr_function import snr
+from photutils.aperture import CircularAperture, aperture_photometry
+from photutils import background as bck
+from photutils.segmentation import detect_sources,detect_threshold,SourceCatalog
+from photutils import detection
+from astropy.stats import sigma_clipped_stats, SigmaClip
+import datetime
 # from _scripts import snr
 # from astropy.io.fits import CompImageHDU
 # from sources import Source
 from . import _cli as cli
+import faulthandler
+
+def multiprocessed_snr(name,hduls,index,shm_name):
+    hdul = hduls[index]
+    data = hdul[name].data
+    # identify background rms
+    boxsize = (data.shape)
+    bkg_estimator = bck.MedianBackground()
+    sigma_clip = SigmaClip(sigma=4.)
+    bkg = bck.Background2D(data, boxsize, bkg_estimator = bkg_estimator)
+    bkg_mean_rms = np.mean(bkg.background_rms)
+    #if index ==3:
+        # plt.figure()
+        # norm = mpl.LogNorm(vmin = data.min(),vmax = data.max())
+        # plt.imshow(np.log10(data),cmap = 'bone',vmin = 0.01, vmax = np.log10(data).max()*0.5)
+        # plt.figure()
+        # plt.imshow(bkg.background, cmap = 'bone')
+        # plt.show()
+    ''' old code 
+    bkg = background.Background2D(data, boxsize)
+    '''
+#        bkg_mean_rms = np.mean(bkg.background_rms)
+
+    # subtract bkg from image
+    #print(bkg.background)
+    data -= bkg.background
+    #print(data.min())
+    # set threshold and detect sources, threshold 5*std above background
+    threshold = detect_threshold(data,nsigma=5.0,background=0.0)
+    segmentedimg = detect_sources(data,threshold=threshold,npixels=10)
+    sourcecatalog = SourceCatalog(data,segmentedimg)
+    #mean, median, std = sigma_clipped_stats(data, sigma=5.0)
+    #daofind = detection.DAOStarFinder(fwhm = 3.0,threshold = 5.*std)
+    #sources = daofind(data) 
+    '''old code
+
+    threshold = detect_threshold(data=new_data, nsigma=5.0, background=0.0)
+    segmentation_image = detect_sources(data=new_data, threshold=threshold, npixels=10)
+
+    source_catalog = source_properties(new_data, segmentation_image)
+    columns = ['id', 'xcentroid', 'ycentroid', 'source_sum']
+    '''
+    #source_catalog = segmentation.SourceCatalog(data=data)
+    source_max_values = sourcecatalog.max_value
+    avg_source_max_values = np.mean(source_max_values)
+    existing_shm = shared_memory.SharedMemory(name = shm_name)
+    snr_arr=np.ndarray(len(hduls),dtype = np.float64, buffer = existing_shm.buf)
+    # calculate signal to noise ratio
+    signal = avg_source_max_values
+    noise = bkg_mean_rms
+    sig_to_noise = (signal)/(noise)
+    snr_arr[index] = sig_to_noise
+    existing_shm.close()
+
+def snr(shm_name,hduls, name="SCI"):
+    """
+    calculates the signal-to-noise ratio of a fits file
+    """
+    processes = []
+    for i in range(len(hduls)):
+        p = mp.Process(target=multiprocessed_snr,args = (name,hduls,i,shm_name))
+        p.start()
+        processes.append(p)
+    for p in processes:
+        p.join()
+
+def multiprocessed_align(reference, shm_name, index,dims,dtype):
+    existing_shm = shared_memory.SharedMemory(name = shm_name)
+    data_arr=np.ndarray(dims,dtype = dtype, buffer = existing_shm.buf)
+    np_src = data_arr[:,:,index]
+    output = np.array([])
+    ref_data = reference.data                               ####OPTIMIZATION POSSIBLE HERE####
+    try:
+        output = astroalign.register(np_src, ref_data)[0]
+    except ValueError:
+        np_src = np_src.byteswap().newbyteorder()
+        output = astroalign.register(np_src, ref_data)[0]
+    data_arr[:,:,index] = output[:,:]
+    existing_shm.close()
 
 
 def align(hduls, name="SCI", ref=None):
@@ -26,43 +114,63 @@ def align(hduls, name="SCI", ref=None):
     :return: list of FITS files with <name> HDU aligned
     """
 
-    hduls_list = [hdul for hdul in hduls]
-    # SNR function appends snr to each hdul's "CAT" table and returns list of hduls
-    hduls_list = list(snr(hduls_list, name))
+    faulthandler.enable()
+    print(hduls)
+    snr_arr = np.zeros(len(hduls),dtype = np.float64)
+    shm_snr = shared_memory.SharedMemory(create = True, size = snr_arr.nbytes)
+    arr = np.ndarray(snr_arr.shape,dtype = snr_arr.dtype,buffer=shm_snr.buf)
+    snr(shm_snr.name,hduls,name)
+    snr_arr = np.zeros(len(hduls),dtype = np.float64)
+    for i in range(len(hduls)):
+        snr_arr[i] = arr[i]
     # No reference index given. we establish reference based on best signal to noise ratio
     if ref is None:
 
-        reference = hduls_list[0][name]  # 0th index reference is used by default
-        ref_snr = hduls_list[0]["CAT"].header["SNR"]
+        reference = hduls[0][name]  # 0th index reference is used by default
+        ref_snr = arr[0]
 
-        for hdul in hduls_list:  # loops though hdul lists finding the hdul with greatest snr
-            if hdul["CAT"].header["SNR"] > ref_snr:  # compares SNR value of current hdul to ref
-                ref_snr = hdul["CAT"].header["SNR"]
-        reference = hdul[name]
-
+        for index in range(len(hduls)): # loops though hdul lists finding the hdul with greatest snr
+            if snr_arr[index] > ref_snr:  # compares SNR value of current hdul to refyee
+                ref_snr = snr_arr[index]
+                reference = hduls[index][name]
     else:  # ref index is provided
-        reference = hduls_list[ref][name]
+        reference = hduls[ref][name]
 
     try:
         ref_data = reference.data
     except AttributeError:
         print("The reference file have doesn't have Attribute: Data")
-
-    for hdul in hduls_list:
-        np_src = hdul[name].data
-        output = np.array([])
-        try:
-            output = astroalign.register(np_src, ref_data)[0]
-        except ValueError:
-            np_src = hdul[name].data.byteswap().newbyteorder()
-            output = astroalign.register(np_src, ref_data)[0]
-
-        if hasattr(hdul[name], "data"):
-            idx = hdul.index_of(name)
-            hdul[idx].data = output
-            hdul[idx].header['EXTNAME'] = ("ALGN    ")
-            hdul[idx].header = reference.header
-    return (hdul for hdul in hduls_list)
+    processes = []
+    imagesize = ref_data.shape
+    length = len(hduls)
+    dims = (imagesize[0],imagesize[1],length) 
+    data_array = np.ndarray(dims,dtype = np.float32)
+    begin = datetime.datetime.now()
+    for index in range(len(hduls)):
+        data_array[:,:,index] = hduls[index][name].data
+    shm_hdul_data = shared_memory.SharedMemory(create = True,size = data_array.nbytes)
+    arr = np.ndarray(data_array.shape,dtype = data_array.dtype,buffer = shm_hdul_data.buf)
+    arr[:,:,:] = data_array[:,:,:]
+    for index in range(len(hduls)):
+        p = mp.Process(target = multiprocessed_align, args = (reference, shm_hdul_data.name, index, dims, data_array.dtype))
+        processes.append(p)
+        p.start()
+    for i in processes:
+        i.join()
+    image = np.zeros(imagesize,dtype = np.float32)
+    data_array[:,:,:] = arr[:,:,:]
+    for i in range(len(hduls)):
+        image = data_array[:,:,i]
+        hduls[i][name].data = image
+        idx = hduls[i].index_of(name)
+        hduls[i][idx].header['EXTNAME'] = ('ALGN')
+        hduls[i][idx].header = reference.header  
+    print(datetime.datetime.now()-begin)
+    shm_hdul_data.close()
+    shm_snr.close()
+    shm_snr.unlink()
+    shm_hdul_data.unlink()
+    return hduls
 
 
 @cli.cli.command("align")
@@ -78,4 +186,4 @@ def align_cmd(hduls, name="SCI", ref=None):
     :param hduls: list of fitsfiles
     :return: list of fistfiles with <name> HDU aligned
     """
-    return align([hduls for hduls in hduls], name, ref)
+    return align([hduls for hduls in hduls], name,ref)
