@@ -11,7 +11,7 @@ def cli():
     Chains together pipeline commands.
     """
 
-@cli.resultcallback()
+@cli.result_callback()
 def run_pipeline(operators):
     """
     Callback is invoked with an iterable of all subcommands
