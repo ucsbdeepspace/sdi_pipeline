@@ -5,7 +5,7 @@ Code originally by Yael Brynjegard-Bialik 2020-2021
 
 
 import numpy as np
-from photutils import Background2D, detect_threshold, detect_sources, source_properties
+from photutils import Background2D, detect_threshold, detect_sources, SourceCatalog
 import click
 from . import _cli as cli
 
@@ -29,7 +29,7 @@ def snr(hduls, name="SCI"):
         threshold = detect_threshold(data=new_data, nsigma=5.0, background=0.0)
         segmentation_image = detect_sources(data=new_data, threshold=threshold, npixels=10)
 
-        source_catalog = source_properties(new_data, segmentation_image)
+        source_catalog = SourceCatalog(new_data, segmentation_image)
         # columns = ['id', 'xcentroid', 'ycentroid', 'source_sum']
 
         source_max_values = source_catalog.max_value
