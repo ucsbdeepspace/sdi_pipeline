@@ -3,11 +3,17 @@ fitsio -- this module contains the read and write function
 """
 
 import glob
-import tkinter.filedialog
+from tkinter.filedialog import askdirectory
 import sys
 import click
 from astropy.io import fits
+import multiprocessing as mp
 from . import _cli as cli
+import os
+
+def mp_write(directory, hdul, i,format_):
+    path = os.path.join(directory, format_.format(number=i))
+    hdul.writeto(path)
 
 def read(directory):
     """
@@ -26,19 +32,24 @@ def write(hduls, directory, format_):
     """
     Writes all given hduls into the directory specified
     """
-    import os
 
     #check if directory exists
     is_dir = os.path.isdir(directory)
 
     if is_dir == False:
         os.mkdir(directory)
-        print('directory was not present, now made at' + directory)
+        print('directory was not present, now made at ' + directory)
 
+    jobs=[]
     for i, h in enumerate(hduls):
-        path = os.path.join(directory, format_.format(number=i))
-        click.echo(f"writing hdul to {path}")
-        h.writeto(path)
+        p = mp.Process(target = mp_write, args=(directory,h,i,format_))
+        p.start()
+        jobs.append(p)
+#        path = os.path.join(directory, format_.format(number=i))
+#        click.echo(f"writing hdul to {path}")
+#        h.writeto(path)
+    for j in jobs:
+        j.join()
     return hduls
 
 @cli.cli.command("write")
@@ -62,13 +73,10 @@ def read_cmd(directory):
     """
     # add try (evaluate if the try is efficient)
     if directory is None:
-        root = tkinter.Tk()
-        root.overrideredirect(1)
-        root.withdraw()
         try:
-            directory = tkinter.filedialog.askdirectory(title = "Select fits directory")
+            directory = askdirectory()
         except:
-            click.echo("Visual file dialog failed, please use option -d and specify path to directory to read fitsfiles.", err=True)
+            click.echo("Visual file dialog does not exist, please use option -d and specify path to directory to read fitsfiles.", err=True)
             sys.exit()
     hduls = read(directory)
     if hduls:
