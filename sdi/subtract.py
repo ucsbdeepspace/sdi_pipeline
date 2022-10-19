@@ -10,6 +10,7 @@ from sfft.CustomizedPacket import Customized_Packet   #sfft specific
 from sfft.EasySparsePacket import Easy_SparsePacket   #sfft specific
 import time
 import numpy as np                                           #sfft specific
+import sys
 
 def subtract(hduls, name="ALGN", method: ("sfft", "ois", "numpy")="sfft"):
     """
@@ -27,8 +28,10 @@ def subtract(hduls, name="ALGN", method: ("sfft", "ois", "numpy")="sfft"):
         print("Writing Temporary Fits Files")
         start = time.perf_counter()
         temp_image_fits_filenames = []
+        venv_file_path = sys.prefix
+        print(venv_file_path)
         for i, hdu in enumerate(hduls): #Write the science hduls into temporary fits files
-            temp_filename = "temp_image{}.fits".format(i)
+            temp_filename = venv_file_path + "/sdi_pipeline/temp_image{}.fits".format(i)
             hdu[name].writeto(temp_filename, overwrite = True)
             temp_image_fits_filenames.append(temp_filename)
 
