@@ -27,7 +27,10 @@ import faulthandler
 
 def multiprocessed_snr(name,hduls,index,shm_name):
     hdul = hduls[index]
-    data = hdul[name].data
+    try:
+        data = hdul[name].data
+    except KeyError:
+        data = hdul["PRIMARY"].data
     # identify background rms
     boxsize = (data.shape)
     bkg_estimator = bck.MedianBackground()
@@ -97,7 +100,7 @@ def multiprocessed_align(reference, shm_name, index,dims,dtype):
     ref_data = reference.data                               ####OPTIMIZATION POSSIBLE HERE####
     try:
         output = astroalign.register(np_src, ref_data)[0]
-    except ValueError:
+    except KeyError:
         np_src = np_src.byteswap().newbyteorder()
         output = astroalign.register(np_src, ref_data)[0]
     data_arr[:,:,index] = output[:,:]
@@ -126,15 +129,24 @@ def align(hduls, name="SCI", ref=None):
     # No reference index given. we establish reference based on best signal to noise ratio
     if ref is None:
 
-        reference = hduls[0][name]  # 0th index reference is used by default
+        try:
+            reference = hduls[0][name]  # 0th index reference is used by default
+        except KeyError:
+            reference = hduls[0]["PRIMARY"]
         ref_snr = arr[0]
 
         for index in range(len(hduls)): # loops though hdul lists finding the hdul with greatest snr
             if snr_arr[index] > ref_snr:  # compares SNR value of current hdul to refyee
                 ref_snr = snr_arr[index]
-                reference = hduls[index][name]
+                try:
+                    reference = hduls[index][name]
+                except KeyError:
+                    reference = hduls[index]["PRIMARY"]
     else:  # ref index is provided
-        reference = hduls[ref][name]
+        try:
+            reference = hduls[ref][name]
+        except KeyError:
+            reference = hduls[ref]["PRIMARY"]
 
     try:
         ref_data = reference.data
@@ -147,7 +159,10 @@ def align(hduls, name="SCI", ref=None):
     data_array = np.ndarray(dims,dtype = np.float32)
     begin = datetime.datetime.now()
     for index in range(len(hduls)):
-        data_array[:,:,index] = hduls[index][name].data
+        try:
+            data_array[:,:,index] = hduls[index][name].data
+        except KeyError:
+            data_array[:,:,index] = hduls[index]["PRIMARY"].data
     shm_hdul_data = shared_memory.SharedMemory(create = True,size = data_array.nbytes)
     arr = np.ndarray(data_array.shape,dtype = data_array.dtype,buffer = shm_hdul_data.buf)
     arr[:,:,:] = data_array[:,:,:]
@@ -161,8 +176,12 @@ def align(hduls, name="SCI", ref=None):
     data_array[:,:,:] = arr[:,:,:]
     for i in range(len(hduls)):
         image = data_array[:,:,i]
-        hduls[i][name].data = image
-        idx = hduls[i].index_of(name)
+        try:
+            hduls[i][name].data = image
+            idx = hduls[i].index_of(name)
+        except KeyError:
+            hduls[i]["PRIMARY"].data = image
+            idx = hduls[i].index_of("PRIMARY")
         hduls[i][idx].header['EXTNAME'] = ('ALGN')
         hduls[i][idx].header = reference.header  
     print(datetime.datetime.now()-begin)
