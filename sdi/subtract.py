@@ -22,14 +22,14 @@ def subtract(hduls, name="ALGN", method: ("sfft", "ois", "numpy")="sfft"):
     """
     hduls = [h for h in hduls]
     outputs = []
-    if method == "sfft" or "sparse" or "Crowded":
+    if method == "sfft":
         print(" ")
         print("Writing Temporary Fits Files")
         start = time.perf_counter()
         temp_image_fits_filenames = []
         venv_file_path = sys.prefix
         for i, hdu in enumerate(hduls): #Write the science hduls into temporary fits files
-            temp_filename = venv_file_path + "/sdi_pipeline/temp_image{}.fits".format(i)
+            temp_filename = venv_file_path + "/sdi_pipeline/sdi/temp_image{}.fits".format(i)
             temp_data = hdu[name].data
             primary = fits.PrimaryHDU(temp_data)
             primary.writeto(temp_filename, overwrite = True)
@@ -52,44 +52,22 @@ def subtract(hduls, name="ALGN", method: ("sfft", "ois", "numpy")="sfft"):
 
     #Subtract
         start = time.perf_counter()
-        if method == "sfft":
-            print("Method = sfft")  #TODO Incorperate input masks for when we take real data
-            for i, fits_name in enumerate(temp_image_fits_filenames):       
-                sol, diff = Customized_Packet.CP(FITS_REF = temp_ref_path, FITS_SCI = fits_name, 
-                                        FITS_mREF = temp_ref_path, FITS_mSCI = fits_name,
-                                        ForceConv = "REF", GKerHW = 4, BGPolyOrder = 2, KerPolyOrder = 2)    
-                hdul = fits.open(fits_name)
-                if np.isnan(np.sum(diff)) == True:
-                    raise ValueError("Residual contains NaN")
-                else:
-                    hdul.insert(1,CompImageHDU(data = diff, header =  hdul["PRIMARY"].header, name = "SUB"))
-                outputs.append(hdul)
-            stop = time.perf_counter()
-            print("Subtraction Complete")
-            print("Time Elapsed: {} sec".format(round(stop-start, 4)))
-    #TODO Make Crowded Work for our Files
-    #elif method == "sfft-crowded":
-    #    for i, fits_name in enumerate(temp_image_fits_filenames):
-    #        prep, sol, diff = Easy_CrowdedPacket.ECP(FITS_REF = "temp_ref.fits", FITS_SCI = fits_name)
-    #        hdul = fits.open(fits_name)
-    #        hdul.insert(1,CompImageHDU(data = diff, header =  hdul[name].header, name = "SUB"))
-    #        outputs.append(hdul)
-    #    stop = time.perf_counter()
-    #    print("Subtraction Complete")
-    #    print("Time Elapsed: {} sec".format(round(stop-start, 4)))
-
-    #TODO Make Sparse Work for our Files
-    #elif method == "sfft-sparse":
-    #    for i, fits_name in enumerate(temp_image_fits_filenames):
-    #        prep, sol, diff = Easy_SparsePacket.ESP(FITS_REF = "temp_ref.fits", FITS_SCI = fits_name)
-    #        hdul = fits.open(fits_name)
-    #        hdul.insert(1,CompImageHDU(data = diff, header =  hdul[name].header, name = "SUB"))
-    #        outputs.append(hdul)    
-    #    stop = time.perf_counter()
-    #    print("Subtraction Complete")
-    #    print("Time Elapsed: {} sec".format(round(stop-start, 4)))
-          
-    #    print("Removing Temporary Fits Files")    
+        print(" ")
+        print("Method = sfft")  #TODO Incorperate input masks for when we take real data
+        for i, fits_name in enumerate(temp_image_fits_filenames):       
+            sol, diff = Customized_Packet.CP(FITS_REF = temp_ref_path, FITS_SCI = fits_name, 
+                                    FITS_mREF = temp_ref_path, FITS_mSCI = fits_name,
+                                    ForceConv = "REF", GKerHW = 4, BGPolyOrder = 2, KerPolyOrder = 2)    
+            
+            if np.isnan(np.sum(diff)) == True:
+                raise ValueError("Residual contains NaN")
+            else:
+                hduls[i].insert(1,CompImageHDU(data = diff, header =  hduls[i][name].header, name = "SUB"))
+            outputs.append(hduls[i])
+        stop = time.perf_counter()
+        print("Subtraction Complete")
+        print("Time Elapsed: {} sec".format(round(stop-start, 4)))
+        print("Removing Temporary Fits Files")    
         for i, fits_name in enumerate(temp_image_fits_filenames): #Remove Temporary Fits files from disc  
             if os.path.exists(fits_name):
                 os.remove(fits_name)
@@ -101,17 +79,23 @@ def subtract(hduls, name="ALGN", method: ("sfft", "ois", "numpy")="sfft"):
             print("temp_ref.fits does not exist")
         print("Removal Complete")
     elif method == "ois":
+        print(" ")
+        print("Method = OIS")
+        template = combine(hduls, name)
         for i,hdu in enumerate(hduls):
             try:
-                diff = ois.optimal_system(image=hdu[name].data, refimage=template, method='Bramich')[0]
+                diff = ois.optimal_system(image=hdu[name].data, refimage=template['PRIMARY'].data, method='Bramich')[0]
             except ValueError:
                 diff = ois.optimal_system(image=hdu[name].data.byteswap().newbyteorder(), refimage=template.byteswap().newbyteorder(), method='Bramich')[0]
             hdu.insert(1,CompImageHDU(data = diff, header =  hduls[i][name].header, name = "SUB"))
             outputs.append(hdu)
 
     elif method == "numpy":
+        print(" ")
+        print("Method = Numpy")
+        template = combine(hduls, name)
         for i,hdu in enumerate(hduls):
-            diff = template - hdu[name].data
+            diff = template["PRIMARY"].data - hdu[name].data
             hdu.insert(1,CompImageHDU(data = diff, header =  hduls[i][name].header, name = "SUB"))
             outputs.append(hdu)
     else:
