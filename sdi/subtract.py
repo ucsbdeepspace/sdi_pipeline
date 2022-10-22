@@ -22,21 +22,21 @@ def subtract(hduls, name="ALGN", method: ("sfft", "ois", "numpy")="sfft"):
     """
     hduls = [h for h in hduls]
     outputs = []
-    template = combine(hduls, name)["PRIMARY"].data # this is a temporary HDUL containing 1 PrimaryHDU with combined data
     if method == "sfft" or "sparse" or "Crowded":
         print(" ")
         print("Writing Temporary Fits Files")
         start = time.perf_counter()
         temp_image_fits_filenames = []
         venv_file_path = sys.prefix
-        print(venv_file_path)
         for i, hdu in enumerate(hduls): #Write the science hduls into temporary fits files
             temp_filename = venv_file_path + "/sdi_pipeline/temp_image{}.fits".format(i)
-            hdu[name].writeto(temp_filename, overwrite = True)
+            temp_data = hdu[name].data
+            primary = fits.PrimaryHDU(temp_data)
+            primary.writeto(temp_filename, overwrite = True)
             temp_image_fits_filenames.append(temp_filename)
-
+        temp_ref_path = venv_file_path + "/sdi_pipeline/temp_ref.fits"
         template_fits = combine(hduls, name) # Create the reference image
-        template_fits.writeto("temp_ref.fits", overwrite = True) # Write the reference image into temporary fits file
+        template_fits.writeto(temp_ref_path, overwrite = True) # Write the reference image into temporary fits file
 
         stop = time.perf_counter()
         print("Writing Complete")
@@ -46,7 +46,7 @@ def subtract(hduls, name="ALGN", method: ("sfft", "ois", "numpy")="sfft"):
         size = 0
         for i, fits_name in enumerate(temp_image_fits_filenames): 
             size += os.path.getsize(fits_name)
-        size += os.path.getsize("temp_ref.fits")
+        size += os.path.getsize(temp_ref_path)
         print("Total size of temporary files is {} mb".format(size/1024**2))
         outputs = []
 
@@ -55,14 +55,14 @@ def subtract(hduls, name="ALGN", method: ("sfft", "ois", "numpy")="sfft"):
         if method == "sfft":
             print("Method = sfft")  #TODO Incorperate input masks for when we take real data
             for i, fits_name in enumerate(temp_image_fits_filenames):       
-                sol, diff = Customized_Packet.CP(FITS_REF = "temp_ref.fits", FITS_SCI = fits_name, 
-                                        FITS_mREF = 'temp_ref.fits', FITS_mSCI = fits_name,
+                sol, diff = Customized_Packet.CP(FITS_REF = temp_ref_path, FITS_SCI = fits_name, 
+                                        FITS_mREF = temp_ref_path, FITS_mSCI = fits_name,
                                         ForceConv = "REF", GKerHW = 4, BGPolyOrder = 2, KerPolyOrder = 2)    
                 hdul = fits.open(fits_name)
                 if np.isnan(np.sum(diff)) == True:
                     raise ValueError("Residual contains NaN")
                 else:
-                    hdul.insert(1,CompImageHDU(data = diff, header =  hdul[name].header, name = "SUB"))
+                    hdul.insert(1,CompImageHDU(data = diff, header =  hdul["PRIMARY"].header, name = "SUB"))
                 outputs.append(hdul)
             stop = time.perf_counter()
             print("Subtraction Complete")
@@ -95,8 +95,8 @@ def subtract(hduls, name="ALGN", method: ("sfft", "ois", "numpy")="sfft"):
                 os.remove(fits_name)
             else:
                 print("{} does not exist".format(fits_name))
-        if os.path.exists("temp_ref.fits"):
-                os.remove("temp_ref.fits")
+        if os.path.exists(temp_ref_path):
+                os.remove(temp_ref_path)
         else:
             print("temp_ref.fits does not exist")
         print("Removal Complete")
