@@ -52,7 +52,6 @@ def subtract(hduls, name="ALGN", method: ("sfft", "ois", "numpy")="sfft"):
 
     #Subtract
         start = time.perf_counter()
-        print(" ")
         print("Method = sfft")  #TODO Incorperate input masks for when we take real data
         for i, fits_name in enumerate(temp_image_fits_filenames):       
             sol, diff = Customized_Packet.CP(FITS_REF = temp_ref_path, FITS_SCI = fits_name, 
@@ -79,7 +78,6 @@ def subtract(hduls, name="ALGN", method: ("sfft", "ois", "numpy")="sfft"):
             print("temp_ref.fits does not exist")
         print("Removal Complete")
     elif method == "ois":
-        print(" ")
         print("Method = OIS")
         template = combine(hduls, name)
         for i,hdu in enumerate(hduls):
@@ -91,7 +89,6 @@ def subtract(hduls, name="ALGN", method: ("sfft", "ois", "numpy")="sfft"):
             outputs.append(hdu)
 
     elif method == "numpy":
-        print(" ")
         print("Method = Numpy")
         template = combine(hduls, name)
         for i,hdu in enumerate(hduls):

@@ -25,7 +25,7 @@ import datetime
 from . import _cli as cli
 import faulthandler
 
-def multiprocessed_snr(name,hduls,index,shm_name):
+def multiprocessed_snr(name, hduls, index, shm_name):
     hdul = hduls[index]
     try:
         data = hdul[name].data
@@ -37,38 +37,12 @@ def multiprocessed_snr(name,hduls,index,shm_name):
     sigma_clip = SigmaClip(sigma=4.)
     bkg = bck.Background2D(data, boxsize, bkg_estimator = bkg_estimator)
     bkg_mean_rms = np.mean(bkg.background_rms)
-    #if index ==3:
-        # plt.figure()
-        # norm = mpl.LogNorm(vmin = data.min(),vmax = data.max())
-        # plt.imshow(np.log10(data),cmap = 'bone',vmin = 0.01, vmax = np.log10(data).max()*0.5)
-        # plt.figure()
-        # plt.imshow(bkg.background, cmap = 'bone')
-        # plt.show()
-    ''' old code 
-    bkg = background.Background2D(data, boxsize)
-    '''
-#        bkg_mean_rms = np.mean(bkg.background_rms)
 
-    # subtract bkg from image
-    #print(bkg.background)
-    data -= bkg.background
-    #print(data.min())
-    # set threshold and detect sources, threshold 5*std above background
+    data -= bkg.background    # set threshold and detect sources, threshold 5*std above background
     threshold = detect_threshold(data,nsigma=5.0,background=0.0)
     segmentedimg = detect_sources(data,threshold=threshold,npixels=10)
     sourcecatalog = SourceCatalog(data,segmentedimg)
-    #mean, median, std = sigma_clipped_stats(data, sigma=5.0)
-    #daofind = detection.DAOStarFinder(fwhm = 3.0,threshold = 5.*std)
-    #sources = daofind(data) 
-    '''old code
 
-    threshold = detect_threshold(data=new_data, nsigma=5.0, background=0.0)
-    segmentation_image = detect_sources(data=new_data, threshold=threshold, npixels=10)
-
-    source_catalog = source_properties(new_data, segmentation_image)
-    columns = ['id', 'xcentroid', 'ycentroid', 'source_sum']
-    '''
-    #source_catalog = segmentation.SourceCatalog(data=data)
     source_max_values = sourcecatalog.max_value
     avg_source_max_values = np.mean(source_max_values)
     existing_shm = shared_memory.SharedMemory(name = shm_name)
@@ -86,7 +60,7 @@ def snr(shm_name,hduls, name="SCI"):
     """
     processes = []
     for i in range(len(hduls)):
-        p = mp.Process(target=multiprocessed_snr,args = (name,hduls,i,shm_name))
+        p = mp.Process(target=multiprocessed_snr, args = (name, hduls, i, shm_name))
         p.start()
         processes.append(p)
     for p in processes:
@@ -118,17 +92,16 @@ def align(hduls, name="SCI", ref=None):
     """
 
     faulthandler.enable()
-    print(hduls)
-    snr_arr = np.zeros(len(hduls),dtype = np.float64)
+    snr_arr = np.zeros(len(hduls), dtype = np.float64)
     shm_snr = shared_memory.SharedMemory(create = True, size = snr_arr.nbytes)
-    arr = np.ndarray(snr_arr.shape,dtype = snr_arr.dtype,buffer=shm_snr.buf)
-    snr(shm_snr.name,hduls,name)
-    snr_arr = np.zeros(len(hduls),dtype = np.float64)
+    arr = np.ndarray(snr_arr.shape, dtype = snr_arr.dtype, buffer=shm_snr.buf)
+    print(hduls)
+    snr(shm_snr.name, hduls, name)
+    snr_arr = np.zeros(len(hduls), dtype = np.float64)
     for i in range(len(hduls)):
         snr_arr[i] = arr[i]
     # No reference index given. we establish reference based on best signal to noise ratio
     if ref is None:
-
         try:
             reference = hduls[0][name]  # 0th index reference is used by default
         except KeyError:
@@ -152,6 +125,7 @@ def align(hduls, name="SCI", ref=None):
         ref_data = reference.data
     except AttributeError:
         print("The reference file have doesn't have Attribute: Data")
+
     processes = []
     imagesize = ref_data.shape
     length = len(hduls)
