@@ -26,20 +26,20 @@ def secid(hduls, read_ext='SCI', write_ext=-1):
     for hdul in hduls:
         RA = hdul[read_ext].header['RA']    #Reads in RA and dec
         DEC = hdul[read_ext].header['DEC']
-        sky_coord = SkyCoord(RA+' '+DEC, uni=(u.hourangle, u.deg))
+        sky_coord = SkyCoord(RA+' '+DEC, unit=(u.hourangle, u.deg))
         sc_ra = sky_coord.ra*u.deg  #Combines RA and Dec into a skycoord with correct units
         sc_dec = sky_coord.dec*u.deg
         ra_id = -1   #starts the values at -1 in case they are too small
         dec_id = -1
         #Constraints the SECID to one 'row' based on the ra
-        for i in enumerate(RA_BOUNDS):
-            if sc_ra.value > RA_BOUNDS[i]: #Compares value to bounds to find section.
+        for i,RA_BOUND in enumerate(RA_BOUNDS):
+            if sc_ra.value > RA_BOUND: #Compares value to bounds to find section.
                 ra_id = _RA_SCALE[i]
                 break
 
         #Figures out what SECID you are precisely in using dec
-        for j in enumerate(DEC_BOUNDS):
-            if sc_dec.value > DEC_BOUNDS[j]:
+        for j,DEC_BOUND in enumerate(DEC_BOUNDS):
+            if sc_dec.value > DEC_BOUND:
                 dec_id = _DEC_SCALE[j]
                 break
 

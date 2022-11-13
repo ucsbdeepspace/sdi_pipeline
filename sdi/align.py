@@ -25,10 +25,10 @@ import datetime
 from . import _cli as cli
 import faulthandler
 
-def multiprocessed_snr(name,hduls,index,shm_name):
+def multiprocessed_snr(read_ext, hduls, index, shm_name):
     hdul = hduls[index]
     try:
-        data = hdul[name].data
+        data = hdul[read_ext].data
     except KeyError:
         data = hdul["PRIMARY"].data
     # identify background rms
@@ -37,42 +37,16 @@ def multiprocessed_snr(name,hduls,index,shm_name):
     sigma_clip = SigmaClip(sigma=4.)
     bkg = bck.Background2D(data, boxsize, bkg_estimator = bkg_estimator)
     bkg_mean_rms = np.mean(bkg.background_rms)
-    #if index ==3:
-        # plt.figure()
-        # norm = mpl.LogNorm(vmin = data.min(),vmax = data.max())
-        # plt.imshow(np.log10(data),cmap = 'bone',vmin = 0.01, vmax = np.log10(data).max()*0.5)
-        # plt.figure()
-        # plt.imshow(bkg.background, cmap = 'bone')
-        # plt.show()
-    ''' old code 
-    bkg = background.Background2D(data, boxsize)
-    '''
-#        bkg_mean_rms = np.mean(bkg.background_rms)
 
-    # subtract bkg from image
-    #print(bkg.background)
-    data -= bkg.background
-    #print(data.min())
-    # set threshold and detect sources, threshold 5*std above background
-    threshold = detect_threshold(data,nsigma=5.0,background=0.0)
-    segmentedimg = detect_sources(data,threshold=threshold,npixels=10)
-    sourcecatalog = SourceCatalog(data,segmentedimg)
-    #mean, median, std = sigma_clipped_stats(data, sigma=5.0)
-    #daofind = detection.DAOStarFinder(fwhm = 3.0,threshold = 5.*std)
-    #sources = daofind(data) 
-    '''old code
+    data -= bkg.background    # set threshold and detect sources, threshold 5*std above background
+    threshold = detect_threshold(data, nsigma=5.0,background=0.0)
+    segmentedimg = detect_sources(data, threshold=threshold,npixels=10)
+    sourcecatalog = SourceCatalog(data, segmentedimg)
 
-    threshold = detect_threshold(data=new_data, nsigma=5.0, background=0.0)
-    segmentation_image = detect_sources(data=new_data, threshold=threshold, npixels=10)
-
-    source_catalog = source_properties(new_data, segmentation_image)
-    columns = ['id', 'xcentroid', 'ycentroid', 'source_sum']
-    '''
-    #source_catalog = segmentation.SourceCatalog(data=data)
     source_max_values = sourcecatalog.max_value
     avg_source_max_values = np.mean(source_max_values)
     existing_shm = shared_memory.SharedMemory(name = shm_name)
-    snr_arr=np.ndarray(len(hduls),dtype = np.float64, buffer = existing_shm.buf)
+    snr_arr=np.ndarray(len(hduls), dtype = np.float64, buffer = existing_shm.buf)
     # calculate signal to noise ratio
     signal = avg_source_max_values
     noise = bkg_mean_rms
@@ -80,13 +54,13 @@ def multiprocessed_snr(name,hduls,index,shm_name):
     snr_arr[index] = sig_to_noise
     existing_shm.close()
 
-def snr(shm_name,hduls, name="SCI"):
+def snr(shm_name, hduls, read_ext="SCI"):
     """
     calculates the signal-to-noise ratio of a fits file
     """
     processes = []
     for i in range(len(hduls)):
-        p = mp.Process(target=multiprocessed_snr,args = (name,hduls,i,shm_name))
+        p = mp.Process(target=multiprocessed_snr, args = (read_ext, hduls, i, shm_name))
         p.start()
         processes.append(p)
     for p in processes:
@@ -107,30 +81,29 @@ def multiprocessed_align(reference, shm_name, index,dims,dtype):
     existing_shm.close()
 
 
-def align(hduls, name="SCI", ref=None):
+def align(hduls, read_ext="SCI", write_ext="ALGN", ref=None):
     """
     Aligns the source astronomical image(s) to the reference astronomical image
     \b
     :param hduls: list of fitsfiles
     :param name: header containing image data.
     :param reference: index of refence image. Should be file with greatest SNR
-    :return: list of FITS files with <name> HDU aligned
+    :return: list of FITS files with <read_ext> HDU aligned
     """
 
     faulthandler.enable()
-    print(hduls)
-    snr_arr = np.zeros(len(hduls),dtype = np.float64)
+    snr_arr = np.zeros(len(hduls), dtype = np.float64)
     shm_snr = shared_memory.SharedMemory(create = True, size = snr_arr.nbytes)
-    arr = np.ndarray(snr_arr.shape,dtype = snr_arr.dtype,buffer=shm_snr.buf)
-    snr(shm_snr.name,hduls,name)
-    snr_arr = np.zeros(len(hduls),dtype = np.float64)
+    arr = np.ndarray(snr_arr.shape, dtype = snr_arr.dtype, buffer=shm_snr.buf)
+    print(hduls)
+    snr(shm_snr.name, hduls, read_ext)
+    snr_arr = np.zeros(len(hduls), dtype = np.float64)
     for i in range(len(hduls)):
         snr_arr[i] = arr[i]
     # No reference index given. we establish reference based on best signal to noise ratio
     if ref is None:
-
         try:
-            reference = hduls[0][name]  # 0th index reference is used by default
+            reference = hduls[0][read_ext]  # 0th index reference is used by default
         except KeyError:
             reference = hduls[0]["PRIMARY"]
         ref_snr = arr[0]
@@ -139,12 +112,12 @@ def align(hduls, name="SCI", ref=None):
             if snr_arr[index] > ref_snr:  # compares SNR value of current hdul to refyee
                 ref_snr = snr_arr[index]
                 try:
-                    reference = hduls[index][name]
+                    reference = hduls[index][read_ext]
                 except KeyError:
                     reference = hduls[index]["PRIMARY"]
     else:  # ref index is provided
         try:
-            reference = hduls[ref][name]
+            reference = hduls[ref][read_ext]
         except KeyError:
             reference = hduls[ref]["PRIMARY"]
 
@@ -152,6 +125,7 @@ def align(hduls, name="SCI", ref=None):
         ref_data = reference.data
     except AttributeError:
         print("The reference file have doesn't have Attribute: Data")
+
     processes = []
     imagesize = ref_data.shape
     length = len(hduls)
@@ -160,7 +134,7 @@ def align(hduls, name="SCI", ref=None):
     begin = datetime.datetime.now()
     for index in range(len(hduls)):
         try:
-            data_array[:,:,index] = hduls[index][name].data
+            data_array[:,:,index] = hduls[index][read_ext].data
         except KeyError:
             data_array[:,:,index] = hduls[index]["PRIMARY"].data
     shm_hdul_data = shared_memory.SharedMemory(create = True,size = data_array.nbytes)
@@ -177,12 +151,12 @@ def align(hduls, name="SCI", ref=None):
     for i in range(len(hduls)):
         image = data_array[:,:,i]
         try:
-            hduls[i][name].data = image
-            idx = hduls[i].index_of(name)
+            hduls[i][read_ext].data = image
+            idx = hduls[i].index_of(read_ext)
         except KeyError:
             hduls[i]["PRIMARY"].data = image
             idx = hduls[i].index_of("PRIMARY")
-        hduls[i][idx].header['EXTNAME'] = ('ALGN')
+        hduls[i][idx].header['EXTNAME'] = (write_ext)
         hduls[i][idx].header = reference.header  
     print(datetime.datetime.now()-begin)
     shm_hdul_data.close()
@@ -193,16 +167,17 @@ def align(hduls, name="SCI", ref=None):
 
 
 @cli.cli.command("align")
-@click.option("-n", "--name", default="SCI", help="The HDU to be aligned.")
+@click.option("-r", "--read_ext", default="SCI", help="The HDU to be aligned.")
+@click.option("-w", "--write_ext", default="ALGN", help="The extension name that the resulting HDUL gets written to. Default""is `ALGN`")
 @cli.operator
 # TODO: use CAT sources if they exist
 
 # align function wrapper
-def align_cmd(hduls, name="SCI", ref=None):
+def align_cmd(hduls, read_ext="SCI", write_ext="ALGN", ref=None):
     """
     Aligns the source astronomical image(s) to the reference astronomical image
     \b
     :param hduls: list of fitsfiles
-    :return: list of fistfiles with <name> HDU aligned
+    :return: list of fistfiles with <read_ext> HDU aligned
     """
-    return align([hduls for hduls in hduls], name,ref)
+    return align([hduls for hduls in hduls], read_ext, write_ext, ref)

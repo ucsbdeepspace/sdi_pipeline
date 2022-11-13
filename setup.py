@@ -12,6 +12,25 @@ DOWNLOAD_URL = "https://github.com/ucsbdeepspace/sdi_pipeline.git"
 
 LICENSE = 'MIT Licence'
 VERSION = '0.99'
+=======
+import subprocess
+import sys
+
+'''
+try:
+    import numpy
+except ModuleNotFoundError:
+    import sys
+    sys.exit("numpy not found, sdi requires numpy for installation.\n Please try '$pip3 install numpy'.")
+
+try:
+    import setuptools_rust
+except ModuleNotFoundError:
+    import sys
+    sys.exit("setuptools_rust not found, sdi requires setuptools_rust for installation.\n Please try '$pip3 install setuptools_rust'.")
+'''
+
+subprocess.run(sys.executable + " -m pip install --upgrade pip setuptools==56.0.0 setuptools_rust numpy", shell=True)
 
 install_reqs = ["numpy",
 				"setuptools_rust",
