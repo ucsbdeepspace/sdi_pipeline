@@ -33,7 +33,7 @@ def combine(hduls, name="ALGN"):
         raise KeyError(str(f"Name {name} not found in HDUList! Try running again with `combine -n [name]` from above")) from None
 
     comb = np.median(data, axis=0)
-    hdu = fits.PrimaryHDU(comb)
+    hdu = fits.PrimaryHDU(data = comb, header =  hduls_list[0][name].header)
 
     # We do not need to create a list of HDUL's here. We return a single median image.
 
