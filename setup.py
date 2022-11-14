@@ -24,7 +24,7 @@ setup(
     py_modules=["sdi"],
     # packages=find_packages(include=["openfits"]),
     include_package_data=True,
-    install_requires=["sfft", "click", "astropy", "photutils", "ois", "astroalign", "astroquery", "sklearn"],
+    install_requires=["cupy-cuda11x", "sfft", "click", "astropy", "photutils", "ois", "astroalign", "astroquery", "scikit-learn"],
     entry_points="""
         [console_scripts]
         sdi=sdi._cli:cli
