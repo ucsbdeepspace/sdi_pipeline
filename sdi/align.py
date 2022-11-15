@@ -24,6 +24,7 @@ import datetime
 # from sources import Source
 from . import _cli as cli
 import faulthandler
+from copy import deepcopy
 
 def multiprocessed_snr(read_ext, hduls, index, shm_name):
     hdul = hduls[index]
@@ -92,10 +93,10 @@ def align(hduls, read_ext="SCI", write_ext="ALGN", ref=None):
     """
 
     faulthandler.enable()
+    deepcopy(hduls) #We need this for no reason
     snr_arr = np.zeros(len(hduls), dtype = np.float64)
     shm_snr = shared_memory.SharedMemory(create = True, size = snr_arr.nbytes)
     arr = np.ndarray(snr_arr.shape, dtype = snr_arr.dtype, buffer=shm_snr.buf)
-    #print(hduls)
     snr(shm_snr.name, hduls, read_ext)
     snr_arr = np.zeros(len(hduls), dtype = np.float64)
     for i in range(len(hduls)):
@@ -127,7 +128,6 @@ def align(hduls, read_ext="SCI", write_ext="ALGN", ref=None):
         print("The reference file have doesn't have Attribute: Data")
 
     processes = []
-    print(ref_data)
     imagesize = ref_data.shape
     length = len(hduls)
     dims = (imagesize[0],imagesize[1],length) 
