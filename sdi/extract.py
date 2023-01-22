@@ -12,7 +12,7 @@ from astropy import wcs
 from astropy.io import fits
 from astropy.coordinates import SkyCoord
 from . import _cli as cli
-
+import time
 
 def extract(hduls, stddev_thresh=5.0, read_ext="SUB", write_ext="XRT"):
     """
@@ -27,6 +27,7 @@ def extract(hduls, stddev_thresh=5.0, read_ext="SUB", write_ext="XRT"):
     :return: a list of HDUL, each with a new `write_ext` HDU appended that is a
         record of extracted sources
     """
+    start_time = time.perf_counter()
     for hdul in hduls:
         data = hdul[read_ext].data
         bkg = None
@@ -59,7 +60,9 @@ def extract(hduls, stddev_thresh=5.0, read_ext="SUB", write_ext="XRT"):
         new_hdu = fits.BinTableHDU(new_table.data, header=header, name=extname, ver=extver)
         hdul.append(new_hdu)
         yield hdul
-
+    stop_time = time.perf_counter()
+    module_time = stop_time - start_time
+    print(module_time)
 
 @cli.cli.command("extract")
 @click.option("-t", "--threshold", default=3.0,

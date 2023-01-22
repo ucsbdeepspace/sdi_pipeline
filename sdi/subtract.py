@@ -20,6 +20,7 @@ def subtract(hduls, name="ALGN", method: ("sfft", "ois", "numpy")="sfft"):
         name -- name of the HDU to use image that the other images will be subtracted from
         method -- method of subtraction. OIS is default (best/slow). Numpy is alternative (worse/quick)
     """
+    start_time = time.perf_counter()
     hduls = [h for h in hduls]
     outputs = []
     if method == "sfft":
@@ -51,7 +52,6 @@ def subtract(hduls, name="ALGN", method: ("sfft", "ois", "numpy")="sfft"):
         outputs = []
 
     #Subtract
-        start = time.perf_counter()
         print("Method = sfft")  #TODO Incorperate input masks for when we take real data
         for i, fits_name in enumerate(temp_image_fits_filenames):       
             sol, diff = Customized_Packet.CP(FITS_REF = temp_ref_path, FITS_SCI = fits_name, 
@@ -63,9 +63,6 @@ def subtract(hduls, name="ALGN", method: ("sfft", "ois", "numpy")="sfft"):
             else:
                 hduls[i].insert(1,CompImageHDU(data = diff, header =  hduls[i][name].header, name = "SUB"))
             outputs.append(hduls[i])
-        stop = time.perf_counter()
-        print("Subtraction Complete")
-        print("Time Elapsed: {} sec".format(round(stop-start, 4)))
         print("Removing Temporary Fits Files")    
         for i, fits_name in enumerate(temp_image_fits_filenames): #Remove Temporary Fits files from disc  
             if os.path.exists(fits_name):
@@ -97,6 +94,9 @@ def subtract(hduls, name="ALGN", method: ("sfft", "ois", "numpy")="sfft"):
             outputs.append(hdu)
     else:
         raise ValueError(f"method {method} unknown!")
+    stop_time = time.perf_counter()
+    module_time = stop_time - start_time
+    print(module_time)
     return (hdul for hdul in outputs)
 
 @cli.cli.command("subtract")

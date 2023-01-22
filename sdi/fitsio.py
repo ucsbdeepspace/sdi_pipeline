@@ -10,6 +10,7 @@ from astropy.io import fits
 import multiprocessing as mp
 from . import _cli as cli
 import os
+import time
 
 def mp_write(directory, hdul, i,format_):
     path = os.path.join(directory, format_.format(number=i))
@@ -19,6 +20,7 @@ def read(directory):
     """
     Takes a directory containing fits files and returns them as a list
     """
+    start_time = time.perf_counter()
     paths = glob.glob("{}/*.fits*".format(directory))
     try:
         # if file name is numeric, paths will be sorted in ascending order
@@ -26,13 +28,16 @@ def read(directory):
     except:
         pass
     hduls = [fits.open(p) for p in paths]
+    stop_time = time.perf_counter()
+    module_time = stop_time - start_time
+    print(module_time)
     return hduls
 
 def write(hduls, directory, format_):
     """
     Writes all given hduls into the directory specified
     """
-
+    start_time = time.perf_counter()
     #check if directory exists
     is_dir = os.path.isdir(directory)
 
@@ -50,6 +55,9 @@ def write(hduls, directory, format_):
 #        h.writeto(path)
     for j in jobs:
         j.join()
+    stop_time = time.perf_counter()
+    module_time = stop_time - start_time
+    print(module_time)
     return hduls
 
 @cli.cli.command("write")
@@ -72,6 +80,7 @@ def read_cmd(directory):
     Takes a directory containing fits files and returns them as a list
     """
     # add try (evaluate if the try is efficient)
+
     if directory is None:
         try:
             directory = askdirectory()

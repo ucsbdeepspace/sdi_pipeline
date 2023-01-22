@@ -24,6 +24,7 @@ import datetime
 # from sources import Source
 from . import _cli as cli
 import faulthandler
+import time
 
 def multiprocessed_snr(read_ext, hduls, index, shm_name):
     hdul = hduls[index]
@@ -90,7 +91,7 @@ def align(hduls, read_ext="SCI", write_ext="ALGN", ref=None):
     :param reference: index of refence image. Should be file with greatest SNR
     :return: list of FITS files with <read_ext> HDU aligned
     """
-
+    start_time = time.perf_counter()
     faulthandler.enable()
     snr_arr = np.zeros(len(hduls), dtype = np.float64)
     shm_snr = shared_memory.SharedMemory(create = True, size = snr_arr.nbytes)
@@ -163,6 +164,9 @@ def align(hduls, read_ext="SCI", write_ext="ALGN", ref=None):
     shm_snr.close()
     shm_snr.unlink()
     shm_hdul_data.unlink()
+    stop_time = time.perf_counter()
+    module_time = stop_time - start_time
+    print(module_time) 
     return hduls
 
 
