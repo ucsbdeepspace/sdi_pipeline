@@ -287,6 +287,7 @@ for im in ims_with_target:
 
 rows = zip(target_mag, target_magerr, times)
 wfname = 'GTAnd_least_abs_dev_g_i.csv'
+
 with open(wfname, 'w') as f:
     writer = csv.writer(f)
     for row in rows:
