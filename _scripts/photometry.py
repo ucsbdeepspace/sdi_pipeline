@@ -170,23 +170,23 @@ def get_reference_stars(cat_catalog, ref_catalog, variable_catalog, ref_coords):
 
 #-----------Retrieve files---------------
 files = glob(r'C:\Users\Sam Whitebook\Documents\Visual Studio 2010\Projects\Lubin Lab\Light_Curves\sdi_output\*.fits', recursive=True)
-ims = [fits.open(f) for f in files]
+hduls = [fits.open(f) for f in files]
 
 #Science images:
 sci_f = glob(r'C:\Users\Sam Whitebook\Documents\Visual Studio 2010\Projects\Lubin Lab\Light_Curves\GTAnd_SCI\*.fits', recursive=True)
-sci_ims = [fits.open(f) for f in sci_f]
+sci_images = [fits.open(f) for f in sci_f]
 
 del files, sci_f
 
 
 #----------Collect our sources-----------------
-ref_ra = ims[0]['REF'].data['ra']
-ref_dec = ims[0]['REF'].data['dec']
+ref_ra = hduls[0]['REF'].data['ra']
+ref_dec = hduls[0]['REF'].data['dec']
 ref_coords = SkyCoord(ref_ra,ref_dec,frame = 'icrs',unit='degree')
 
-ref_catalog = hdultocluster(ims, name="REF", tablename="ROBJ") #Reference stars from Gaia DR2
-cat_catalog = hdultocluster(ims, name = 'CAT', tablename= 'OBJ') #All sources found in the image
-variable_catalog = hdultocluster(ims, name = 'XRT', tablename= 'XOBJ') #All variable sources found after subtraction
+ref_catalog = hdultocluster(hduls, name="REF", tablename="ROBJ") #Reference stars from Gaia DR2
+cat_catalog = hdultocluster(hduls, name = 'CAT', tablename= 'OBJ') #All sources found in the image
+variable_catalog = hdultocluster(hduls, name = 'XRT', tablename= 'XOBJ') #All variable sources found after subtraction
 
 target_coord = SkyCoord(11.291, 41.508, frame = 'icrs', unit = 'degree') 
 
@@ -209,40 +209,40 @@ target = target_star[target_not_present_idx]
 #next remove those indices in all the comp stars and sources, and remove those images
 ref_stars = [ref_stars[i][target_not_present_idx] for i in range(0,len(ref_stars))]
 sdi_reference_stars = [sdi_reference_stars[i][target_not_present_idx] for i in range(0,len(sdi_reference_stars))]
-ims_with_target = [i for i in target_not_present_idx[0]]
+hduls_with_target = [i for i in target_not_present_idx[0]]
 
 #Convert Gaia g, r magnitudes to SDSS g' r' magnitudes. This is because our images are taken in SDSS g' r' filters
 ref_stars = np.array([norm(i) for i in ref_stars])
 reference_star_g_mag = ref_stars[:,0,0]
 reference_star_r_mag = ref_stars[:,1,0]
 
-del target_coord, ref_coords, ref_catalog, cat_catalog, variable_catalog, ims
+del target_coord, ref_coords, ref_catalog, cat_catalog, variable_catalog, hduls
 
 #----------------Estimate Uncertainty and Target Magnitude------------------
 target_mag = []
 target_magerr = []
 times = []
-for im in ims_with_target:
+for im in hduls_with_target:
     try:
-        t = sci_ims[im][0].header['DATE-OBS']
+        t = sci_images[im][0].header['DATE-OBS']
         time = Time(t)
         t = time.mjd
         times=times.append(t)
     except IndexError:
-        t = sci_ims[im]['SCI'].header['OBSMJD']
+        t = sci_images[im]['SCI'].header['OBSMJD']
         times.append(np.array(t))
     
-    gain = sci_ims[im][0].header['GAIN']
+    gain = sci_images[im][0].header['GAIN']
   
     #Calculate the instrumental magnitude (flux) of the star
     #Using 'a' as a sloppy alternative to aperture. Maybe look into sep.kron_radius or flux_radius. aperture is a radius.
     #Have to select index [0] for each mag to get just the numerical value without the description of the column object
-    target_inst_mag = photometry(target['x'][im],target['y'][im], target['a'][im], sci_ims[im])[0][0]
+    target_inst_mag = photometry(target['x'][im],target['y'][im], target['a'][im], sci_images[im])[0][0]
 
     instrumental_mag = []
     in_magerr = []
     for i in range(0,len(sdi_reference_stars)):
-        arr = photometry(sdi_reference_stars[i]['x'][im],sdi_reference_stars[i]['y'][im], sdi_reference_stars[i]['a'][im], sci_ims[im])
+        arr = photometry(sdi_reference_stars[i]['x'][im],sdi_reference_stars[i]['y'][im], sdi_reference_stars[i]['a'][im], sci_images[im])
         instrumental_mag.append(arr[0][0])
         in_magerr.append(arr[1][0])
 
