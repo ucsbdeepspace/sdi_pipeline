@@ -157,20 +157,20 @@ ref_ra = ims[0]['REF'].data['ra']
 ref_dec = ims[0]['REF'].data['dec']
 ref_coords = SkyCoord(ref_ra,ref_dec,frame = 'icrs',unit='degree')
 
-ref_source = hdultocluster(ims, name="REF", tablename="ROBJ") #Reference stars from Gaia DR2
-cat_source = hdultocluster(ims, name = 'CAT', tablename= 'OBJ') #All sources found in the image
-var_source = hdultocluster(ims, name = 'XRT', tablename= 'XOBJ') #All variable sources found after subtraction
+ref_stars = hdultocluster(ims, name="REF", tablename="ROBJ") #Reference stars from Gaia DR2
+cat_stars = hdultocluster(ims, name = 'CAT', tablename= 'OBJ') #All sources found in the image
+variable_stars = hdultocluster(ims, name = 'XRT', tablename= 'XOBJ') #All variable sources found after subtraction
 
 target_coord = SkyCoord(11.291, 41.508, frame = 'icrs', unit = 'degree') 
 
-targets = cluster_search_radec(cat_source, target_coord.ra.deg, target_coord.dec.deg)
+target_star_in_catalog = cluster_search_radec(cat_stars, target_coord.ra.deg, target_coord.dec.deg)
 
 del ref_ra, ref_dec
 
 
 #----------------Find reference stars close to the target------------------
 #Remove reference stars that are also variable
-var_sources = [cluster_search_radec(var_source, coord.ra.deg, coord.dec.deg) for coord in ref_coords]
+var_sources = [cluster_search_radec(variable_stars, coord.ra.deg, coord.dec.deg) for coord in ref_coords]
 var_coords = [SkyCoord(v['ra'],v['dec'], frame = 'icrs', unit = 'degree') for v in var_sources][0]
 
 nonvar_idx = []
@@ -183,11 +183,11 @@ for v in var_coords:
 ref_coords_in_im = np.array(ref_coords)[list(set(nonvar_idx))]
 
 #These are the comp stars in the cat table itself. so these stars are in our images
-comp_sources = [cluster_search_radec(cat_source, coord.ra.deg, coord.dec.deg) for coord in ref_coords_in_im]
-comp_stars = [cluster_search_radec(ref_source, coord.ra.deg, coord.dec.deg) for coord in ref_coords_in_im]
+comp_sources = [cluster_search_radec(cat_stars, coord.ra.deg, coord.dec.deg) for coord in ref_coords_in_im]
+comp_stars = [cluster_search_radec(ref_stars, coord.ra.deg, coord.dec.deg) for coord in ref_coords_in_im]
 
 #This is the target star in every image
-target = cluster_search_radec(cat_source, target_coord.ra.deg, target_coord.dec.deg)
+target = cluster_search_radec(cat_stars, target_coord.ra.deg, target_coord.dec.deg)
 
 #Remove all the images for which the target star could not be found by removing places that have zeroes
 t_idx = np.where(target['x'] != 0)
@@ -213,22 +213,22 @@ test = np.array(test)
 mag_temp = test[:,0,0]
 r_temp = test[:,1,0]
 
-del target_coord, ref_coords, ref_source, cat_source, var_source, nonvar_idx, var_sources, ims
+del target_coord, ref_coords, ref_stars, cat_stars, variable_stars, nonvar_idx, var_sources, ims
 
 #----------------Estimate Uncertainty and Target Magnitude------------------
 target_mag = []
 target_magerr = []
-ts = []
-times = [im[0].header['OBSMJD'] for im in sci_ims]
+times = []
+#times = [im[0].header['OBSMJD'] for im in sci_ims]
 for im in ims_new:
     try:
         t = sci_ims[im][0].header['DATE-OBS']
-        times = Time(t)
-        time = times.mjd
-        ts.append(time)
+        time = Time(t)
+        t = time.mjd
+        times=times.append(t)
     except IndexError:
         t = sci_ims[im]['SCI'].header['OBSMJD']
-        ts.append(np.array(t))
+        times.append(np.array(t))
     
     gain = sci_ims[im][0].header['GAIN']
   
@@ -245,45 +245,45 @@ for im in ims_new:
         in_magerr.append(arr[1][0])
 
     #Only select reference stars that are brighter than 20th magnitude
-    bright_idx = []
+    bright_stars_idx = []
     ref_magerr = 0.16497
     for i in range(0,len(instrumental_mag)):
         if mag_temp[i] < 18: #20 is the lowest magnitude our pipeline can detect
-            bright_idx.append(i)
+            bright_stars_idx.append(i)
         else:
             pass
-    instrumental_mag = np.array(instrumental_mag)[bright_idx]
-    ref_mag = np.array(mag_temp)[bright_idx]
-    r_ref_mag = np.array(r_temp)[bright_idx]
+    instrumental_mag = np.array(instrumental_mag)[bright_stars_idx]
+    ref_mag = np.array(mag_temp)[bright_stars_idx]
+    r_ref_mag = np.array(r_temp)[bright_stars_idx]
     
     #First find all places where there are non-nan values:
-    idx = np.where([np.isnan(r)==False for r in ref_mag])[0]
-    i_mag = [instrumental_mag[i] for i in idx]
-    g = [ref_mag[i] for i in idx]
-    r = [r_ref_mag[i] for i in idx]
-    i_mag = np.array(i_mag)
+    nan_idx = np.where([np.isnan(r)==False for r in ref_mag])[0]
+    instrumental_mag = [instrumental_mag[i] for i in nan_idx]
+    g = [ref_mag[i] for i in nan_idx]
+    r = [r_ref_mag[i] for i in nan_idx]
+    instrumental_mag = np.array(instrumental_mag)
     g = np.array(g)
     r = np.array(r)
     g_r = g - r
-    i_g = i_mag - g
+    inst_minus_g = instrumental_mag - g
 
     #Assuming Gaia's magnitudes are the true values of the star, we can use our instrumental mags in g to estimate uncertainty.
     zp_guesses = np.linspace(25, 30, 80)
     bkgd_guesses = np.linspace(15000, 25000, 100)
     c0_guesses = np.linspace(-1.5, 1.5, 20)
 
-    best_params = mad_curve_fit(zp_guesses, c0_guesses, i_mag, g, g_r)
+    best_params = mad_curve_fit(zp_guesses, c0_guesses, instrumental_mag, g, g_r)
     zp = best_params[0]
     c0 = best_params[1]
 
-    bkgd = bkgd_fit(bkgd_guesses, zp, i_mag, i_g, 1.6, 12.5)
+    bkgd = bkgd_fit(bkgd_guesses, zp, instrumental_mag, inst_minus_g, 1.6, 12.5)
     
     target_mag_err = Error_Finder(bkgd, target_inst_mag, 1.6, 12.5)
 
     target_mag.append(target_inst_mag + zp)
     target_magerr.append(target_mag_err)
 
-rows = zip(target_mag, target_magerr, ts)
+rows = zip(target_mag, target_magerr, times)
 wfname = 'GTAnd_least_abs_dev_g_i.csv'
 with open(wfname, 'w') as f:
     writer = csv.writer(f)
