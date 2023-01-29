@@ -139,6 +139,34 @@ def mad_curve_fit(ZP_guess, c0_guesses, i_mag, g, g_r): #Recursively, minimizes 
     best_params = params[np.where(median_list == np.min(median_list))[0][0]]
     return best_params
 
+def get_reference_stars(cat_catalog, ref_catalog, variable_catalog, ref_coords):
+    #Remove reference stars that are also variable
+    variable_stars_in_catalog = [cluster_search_radec(variable_catalog, coord.ra.deg, coord.dec.deg) for coord in ref_coords]
+    variable_star_coords = [SkyCoord(v['ra'],v['dec'], frame = 'icrs', unit = 'degree') for v in variable_stars_in_catalog][0]
+    nonvar_idx = []
+    for v in variable_star_coords:
+        for c in range(0, len(ref_coords)):
+            if v!=ref_coords[c]:
+                nonvar_idx.append(c)
+            else:
+                pass
+    ref_coords = np.array(ref_coords)[list(set(nonvar_idx))]
+    
+    #These are the comp stars in the cat table itself. so these stars are in our images
+    sdi_reference_stars = [cluster_search_radec(cat_catalog, coord.ra.deg, coord.dec.deg) for coord in ref_coords]
+    #And these are the same refence stars but from gaia
+    ref_stars = [cluster_search_radec(ref_catalog, coord.ra.deg, coord.dec.deg) for coord in ref_coords]
+    
+    #Now check for zero x, y, and a in the comp stars. If there are zero values, remove the comp source entirely
+    c_idx = []
+    for i in range(0,len(sdi_reference_stars)):
+        if sdi_reference_stars[i]['x'].all() !=0 and sdi_reference_stars[i]['y'].all() !=0 and sdi_reference_stars[i]['a'].all()!=0:
+            c_idx.append(i)
+    
+    sdi_reference_stars = np.array(sdi_reference_stars)[c_idx] #The flux of the reference stars in our images
+    ref_stars = np.array(ref_stars)[c_idx] #The apparent magnitude of reference stars in Gaia
+    return sdi_reference_stars, ref_stars
+
 
 #-----------Retrieve files---------------
 files = glob(r'C:\Users\Sam Whitebook\Documents\Visual Studio 2010\Projects\Lubin Lab\Light_Curves\sdi_output\*.fits', recursive=True)
@@ -168,22 +196,8 @@ del ref_ra, ref_dec
 
 
 #----------------Find reference stars close to the target------------------
-#Remove reference stars that are also variable
-variable_stars_in_catalog = [cluster_search_radec(variable_catalog, coord.ra.deg, coord.dec.deg) for coord in ref_coords]
-variable_star_coords = [SkyCoord(v['ra'],v['dec'], frame = 'icrs', unit = 'degree') for v in variable_stars_in_catalog][0]
+sdi_reference_stars, ref_stars = get_reference_stars(cat_catalog, ref_catalog, variable_catalog, ref_coords)
 
-nonvar_idx = []
-for v in variable_star_coords:
-    for c in range(0, len(ref_coords)):
-        if v!=ref_coords[c]:
-            nonvar_idx.append(c)
-        else:
-            pass
-ref_coords = np.array(ref_coords)[list(set(nonvar_idx))]
-
-#These are the comp stars in the cat table itself. so these stars are in our images
-sdi_reference_stars = [cluster_search_radec(cat_catalog, coord.ra.deg, coord.dec.deg) for coord in ref_coords]
-ref_stars = [cluster_search_radec(ref_catalog, coord.ra.deg, coord.dec.deg) for coord in ref_coords]
 
 #This is the target star in every image
 target_star = cluster_search_radec(cat_catalog, target_coord.ra.deg, target_coord.dec.deg)
@@ -197,22 +211,12 @@ ref_stars = [ref_stars[i][target_not_present_idx] for i in range(0,len(ref_stars
 sdi_reference_stars = [sdi_reference_stars[i][target_not_present_idx] for i in range(0,len(sdi_reference_stars))]
 ims_with_target = [i for i in target_not_present_idx[0]]
 
-#Now check for zero x, y, and a in the comp stars. If there are zero values, remove the comp source entirely
-c_idx = []
-for i in range(0,len(sdi_reference_stars)):
-    if sdi_reference_stars[i]['x'].all() !=0 and sdi_reference_stars[i]['y'].all() !=0 and sdi_reference_stars[i]['a'].all()!=0:
-        c_idx.append(i)
-
-sdi_reference_stars = np.array(sdi_reference_stars)[c_idx] #The flux of the reference stars in our images
-ref_stars = np.array(ref_stars)[c_idx] #The apparent magnitude of reference stars in Gaia
-
 #Convert Gaia g, r magnitudes to SDSS g' r' magnitudes. This is because our images are taken in SDSS g' r' filters
-test = [norm(i) for i in ref_stars]
-test = np.array(test)
-mag_temp = test[:,0,0]
-r_temp = test[:,1,0]
+ref_stars = np.array([norm(i) for i in ref_stars])
+reference_star_g_mag = ref_stars[:,0,0]
+reference_star_r_mag = ref_stars[:,1,0]
 
-del target_coord, ref_coords, ref_catalog, cat_catalog, variable_catalog, nonvar_idx, variable_stars_in_catalog, ims
+del target_coord, ref_coords, ref_catalog, cat_catalog, variable_catalog, ims
 
 #----------------Estimate Uncertainty and Target Magnitude------------------
 target_mag = []
@@ -246,13 +250,13 @@ for im in ims_with_target:
     bright_stars_idx = []
     ref_magerr = 0.16497
     for i in range(0,len(instrumental_mag)):
-        if mag_temp[i] < 18: #20 is the lowest magnitude our pipeline can detect
+        if reference_star_g_mag[i] < 18: #20 is the lowest magnitude our pipeline can detect
             bright_stars_idx.append(i)
         else:
             pass
     instrumental_mag = np.array(instrumental_mag)[bright_stars_idx]
-    ref_mag = np.array(mag_temp)[bright_stars_idx]
-    r_ref_mag = np.array(r_temp)[bright_stars_idx]
+    ref_mag = np.array(reference_star_g_mag)[bright_stars_idx]
+    r_ref_mag = np.array(reference_star_r_mag)[bright_stars_idx]
     
     #First find all places where there are non-nan values:
     nan_idx = np.where([np.isnan(r)==False for r in ref_mag])[0]
