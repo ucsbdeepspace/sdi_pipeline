@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import sep
 from astropy.io import fits
 from astropy import units as u
@@ -22,40 +21,6 @@ def _in_cone(coord: SkyCoord, cone_center: SkyCoord, cone_radius: u.degree):
     """
     d = (coord.ra - cone_center.ra) ** 2 + (coord.dec - cone_center.dec) ** 2
     return d < (cone_radius ** 2)
-
-
-def find_ref(target: SkyCoord, ref_coords: SkyCoord, threshold: u.degree = u.Quantity(0.06, u.deg)):
-    ref_comp = []
-    for coord in ref_coords:
-        try:
-            for t in target:
-                if _in_cone(t, coord, threshold):
-                    ref_comp.append(coord)
-                else:
-                    pass
-        except TypeError:
-            if _in_cone(target, coord, threshold):
-                    ref_comp.append(coord)
-            else:
-                pass
-    
-    #This gets us comparison stars, and the star itself
-    #Getting rid of the target stars inthe comp list
-    thresh = u.Quantity(0.001, u.deg)
-    comp = []
-    for coord in ref_comp:
-        try:
-            for t in target:
-                if _in_cone(t, coord, thresh):
-                    pass
-                else:
-                    comp.append(coord)
-        except TypeError:
-            if _in_cone(target, coord, thresh):
-                    pass
-            else:
-                comp.append(coord)
-    return comp
 
 def norm(ref_table):
     ref_mag = ref_table['phot_g_mean_mag']
