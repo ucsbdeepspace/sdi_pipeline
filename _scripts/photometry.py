@@ -10,7 +10,6 @@ from glob import glob
 from photutils.segmentation import make_source_mask
 from astropy.time import Time
 from collate import hdultocluster, cluster_search_radec
-from scipy.optimize import *
 import csv
 import warnings
 warnings.filterwarnings(action='ignore')
@@ -157,70 +156,69 @@ ref_ra = ims[0]['REF'].data['ra']
 ref_dec = ims[0]['REF'].data['dec']
 ref_coords = SkyCoord(ref_ra,ref_dec,frame = 'icrs',unit='degree')
 
-ref_stars = hdultocluster(ims, name="REF", tablename="ROBJ") #Reference stars from Gaia DR2
-cat_stars = hdultocluster(ims, name = 'CAT', tablename= 'OBJ') #All sources found in the image
-variable_stars = hdultocluster(ims, name = 'XRT', tablename= 'XOBJ') #All variable sources found after subtraction
+ref_catalog = hdultocluster(ims, name="REF", tablename="ROBJ") #Reference stars from Gaia DR2
+cat_catalog = hdultocluster(ims, name = 'CAT', tablename= 'OBJ') #All sources found in the image
+variable_catalog = hdultocluster(ims, name = 'XRT', tablename= 'XOBJ') #All variable sources found after subtraction
 
 target_coord = SkyCoord(11.291, 41.508, frame = 'icrs', unit = 'degree') 
 
-target_star_in_catalog = cluster_search_radec(cat_stars, target_coord.ra.deg, target_coord.dec.deg)
+target_star_in_catalog = cluster_search_radec(cat_catalog, target_coord.ra.deg, target_coord.dec.deg)
 
 del ref_ra, ref_dec
 
 
 #----------------Find reference stars close to the target------------------
 #Remove reference stars that are also variable
-var_sources = [cluster_search_radec(variable_stars, coord.ra.deg, coord.dec.deg) for coord in ref_coords]
-var_coords = [SkyCoord(v['ra'],v['dec'], frame = 'icrs', unit = 'degree') for v in var_sources][0]
+variable_stars_in_catalog = [cluster_search_radec(variable_catalog, coord.ra.deg, coord.dec.deg) for coord in ref_coords]
+variable_star_coords = [SkyCoord(v['ra'],v['dec'], frame = 'icrs', unit = 'degree') for v in variable_stars_in_catalog][0]
 
 nonvar_idx = []
-for v in var_coords:
+for v in variable_star_coords:
     for c in range(0, len(ref_coords)):
         if v!=ref_coords[c]:
             nonvar_idx.append(c)
         else:
             pass
-ref_coords_in_im = np.array(ref_coords)[list(set(nonvar_idx))]
+ref_coords = np.array(ref_coords)[list(set(nonvar_idx))]
 
 #These are the comp stars in the cat table itself. so these stars are in our images
-comp_sources = [cluster_search_radec(cat_stars, coord.ra.deg, coord.dec.deg) for coord in ref_coords_in_im]
-comp_stars = [cluster_search_radec(ref_stars, coord.ra.deg, coord.dec.deg) for coord in ref_coords_in_im]
+sdi_reference_stars = [cluster_search_radec(cat_catalog, coord.ra.deg, coord.dec.deg) for coord in ref_coords]
+ref_stars = [cluster_search_radec(ref_catalog, coord.ra.deg, coord.dec.deg) for coord in ref_coords]
 
 #This is the target star in every image
-target = cluster_search_radec(cat_stars, target_coord.ra.deg, target_coord.dec.deg)
+target_star = cluster_search_radec(cat_catalog, target_coord.ra.deg, target_coord.dec.deg)
 
 #Remove all the images for which the target star could not be found by removing places that have zeroes
-t_idx = np.where(target['x'] != 0)
-target = target[t_idx]
+target_not_present_idx = np.where(target_star['x'] != 0)
+target = target_star[target_not_present_idx]
 
 #next remove those indices in all the comp stars and sources, and remove those images
-comp_stars = [comp_stars[i][t_idx] for i in range(0,len(comp_stars))]
-comp_sources = [comp_sources[i][t_idx] for i in range(0,len(comp_sources))]
-ims_new = [i for i in t_idx[0]]
+ref_stars = [ref_stars[i][target_not_present_idx] for i in range(0,len(ref_stars))]
+sdi_reference_stars = [sdi_reference_stars[i][target_not_present_idx] for i in range(0,len(sdi_reference_stars))]
+ims_with_target = [i for i in target_not_present_idx[0]]
 
 #Now check for zero x, y, and a in the comp stars. If there are zero values, remove the comp source entirely
 c_idx = []
-for i in range(0,len(comp_sources)):
-    if comp_sources[i]['x'].all() !=0 and comp_sources[i]['y'].all() !=0 and comp_sources[i]['a'].all()!=0:
+for i in range(0,len(sdi_reference_stars)):
+    if sdi_reference_stars[i]['x'].all() !=0 and sdi_reference_stars[i]['y'].all() !=0 and sdi_reference_stars[i]['a'].all()!=0:
         c_idx.append(i)
 
-comp_sources = np.array(comp_sources)[c_idx] #The flux of the reference stars in our images
-comp_stars = np.array(comp_stars)[c_idx] #The apparent magnitude of reference stars in Gaia
+sdi_reference_stars = np.array(sdi_reference_stars)[c_idx] #The flux of the reference stars in our images
+ref_stars = np.array(ref_stars)[c_idx] #The apparent magnitude of reference stars in Gaia
 
 #Convert Gaia g, r magnitudes to SDSS g' r' magnitudes. This is because our images are taken in SDSS g' r' filters
-test = [norm(i) for i in comp_stars]
+test = [norm(i) for i in ref_stars]
 test = np.array(test)
 mag_temp = test[:,0,0]
 r_temp = test[:,1,0]
 
-del target_coord, ref_coords, ref_stars, cat_stars, variable_stars, nonvar_idx, var_sources, ims
+del target_coord, ref_coords, ref_catalog, cat_catalog, variable_catalog, nonvar_idx, variable_stars_in_catalog, ims
 
 #----------------Estimate Uncertainty and Target Magnitude------------------
 target_mag = []
 target_magerr = []
 times = []
-#times = [im[0].header['OBSMJD'] for im in sci_ims]
-for im in ims_new:
+for im in ims_with_target:
     try:
         t = sci_ims[im][0].header['DATE-OBS']
         time = Time(t)
@@ -239,8 +237,8 @@ for im in ims_new:
 
     instrumental_mag = []
     in_magerr = []
-    for i in range(0,len(comp_sources)):
-        arr = photometry(comp_sources[i]['x'][im],comp_sources[i]['y'][im], comp_sources[i]['a'][im], sci_ims[im])
+    for i in range(0,len(sdi_reference_stars)):
+        arr = photometry(sdi_reference_stars[i]['x'][im],sdi_reference_stars[i]['y'][im], sdi_reference_stars[i]['a'][im], sci_ims[im])
         instrumental_mag.append(arr[0][0])
         in_magerr.append(arr[1][0])
 
