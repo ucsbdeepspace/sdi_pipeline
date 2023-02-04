@@ -13,6 +13,7 @@ from astropy.coordinates import SkyCoord
 import astropy.units as u
 from astropy.io import fits
 from . import _cli as cli
+import copy
 
 # define specific columns so we don't get dtype issues from the chaff
 COLUMNS = ["source_id", "ra", "ra_error", "dec", "dec_error",
@@ -43,6 +44,11 @@ def ref(hduls, read_ext=-1, write_ext="REF"):
         Must include 'ra' and 'dec' fields.
     :param write_ext: the HDU extname to write reference information from.
     """
+
+    # Retrieve hduls from virtual memory
+    print(hduls)
+    hduls = [i for i in hduls]
+
     # This import is here because the GAIA import slows down `import sdi`
     # substantially; we don't want to import it unless we need it
     from astroquery.gaia import Gaia
@@ -58,6 +64,7 @@ def ref(hduls, read_ext=-1, write_ext="REF"):
     initial_empty = 0
     # An adaptive method of obtaining the threshold value
     for hdul in hduls:
+        print(hdul[read_ext])
         threshold = max(hdul[read_ext].data["a"])*hdul['ALGN'].header['PIXSCALE']/3600
         threshold = u.Quantity(threshold, u.deg)
         ra = hdul[read_ext].data["RA"]
@@ -75,7 +82,7 @@ def ref(hduls, read_ext=-1, write_ext="REF"):
                                               output_format="csv").get_results()
                 data = data.as_array()
                 # add the cache table to the data
-                if not cached_table:
+                if len(cached_table):
                     cached_table = np.hstack((cached_table, data.data))
                 else:
                     cached_table = data.data
@@ -91,7 +98,7 @@ def ref(hduls, read_ext=-1, write_ext="REF"):
                 # look through the cache to find a match
                 if _in_cone(cs, coord, threshold):
                     # if we find a match, copy it to the output table
-                    if not output_table:
+                    if len(output_table):
                         output_table = np.hstack((output_table, np.copy(ct)))
                     else:
                         output_table = np.copy(ct)
@@ -104,7 +111,7 @@ def ref(hduls, read_ext=-1, write_ext="REF"):
 
             ########### Add a blank if we didn't find anything #################
             if not appended:
-                if not output_table:
+                if len(output_table):
                     # If we do not find one cached, then add a blank
                     blank = np.empty(shape=0, dtype=output_table.dtype)
                     output_table = np.hstack((output_table, blank))
@@ -120,7 +127,7 @@ def ref(hduls, read_ext=-1, write_ext="REF"):
                 if np.isnan(val):
                     elm[j] = 0.0
         # only append the hdul if output_table is not empty
-        if not output_table:
+        if len(output_table):
             hdul.append(fits.BinTableHDU(data=output_table, header=header, name=extname))
         else:
             warnings.warn(f"empty reference table created, no stars found in the database corresponding to {hdul}")
