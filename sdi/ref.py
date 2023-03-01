@@ -52,12 +52,22 @@ def ref(hduls, read_ext=-1, write_ext="REF"):
     cached_coords = []
     cached_table = np.array([])
 
-    # an arbitrary cone search radius, separate from the threshold value
-    cone_radius = u.Quantity(0.05, u.deg)
+    # Conduct a cone search that covers all possible sources in the image with one query
+    # Use the header info in the first image for cone search size
+    hdul_init = next(hduls)
+    cone_radius = max([hdul_init['read_ext'].header['ZNAXIS1'], hdul_init['read_ext'].header['ZNAXIS2']])*hdul_init['ALGN'].header['PIXSCALE']/3600
+    cone_radius = u.Quantity(threshold, u.deg)
+    # Make the query
+    data = Gaia.cone_search_async(coord, cone_radius, columns=COLUMNS, output_format="csv").get_results()
+    data = data.as_array()
+    cached_table = data.data
+    
     # we need this to track blanks till we know the dtype
     initial_empty = 0
-    # An adaptive method of obtaining the threshold value
+    
+    # TODO:  change this loop to after astroquery
     for hdul in hduls:
+    # An adaptive method of obtaining the threshold value
         threshold = max(hdul[read_ext].data["a"])*hdul['ALGN'].header['PIXSCALE']/3600
         threshold = u.Quantity(threshold, u.deg)
         ra = hdul[read_ext].data["RA"]
@@ -68,6 +78,8 @@ def ref(hduls, read_ext=-1, write_ext="REF"):
         for coord in coordinates:
             ########### Query an area if we have not done so already ###########
             # Check to see if we've queried the area
+            # Disable this whole section for now
+            '''
             if not any((_in_cone(coord, query, cone_radius - 2 * threshold) \
                         for query in queried_coords)):
                 # we have never queried the area. Do a GAIA cone search
@@ -75,7 +87,7 @@ def ref(hduls, read_ext=-1, write_ext="REF"):
                                               output_format="csv").get_results()
                 data = data.as_array()
                 # add the cache table to the data
-                if not cached_table:
+                if len(cached_table):
                     cached_table = np.hstack((cached_table, data.data))
                 else:
                     cached_table = data.data
@@ -84,6 +96,7 @@ def ref(hduls, read_ext=-1, write_ext="REF"):
                     cached_coords.append(SkyCoord(d["ra"], d["dec"], unit=(u.deg, u.deg)))
                 # note that we have now queried this area
                 queried_coords.append(coord)
+            '''
 
             ########### Look through our cache for matches #####################
             appended = False
@@ -91,7 +104,7 @@ def ref(hduls, read_ext=-1, write_ext="REF"):
                 # look through the cache to find a match
                 if _in_cone(cs, coord, threshold):
                     # if we find a match, copy it to the output table
-                    if not output_table:
+                    if len(output_table):
                         output_table = np.hstack((output_table, np.copy(ct)))
                     else:
                         output_table = np.copy(ct)
@@ -104,7 +117,7 @@ def ref(hduls, read_ext=-1, write_ext="REF"):
 
             ########### Add a blank if we didn't find anything #################
             if not appended:
-                if not output_table:
+                if len(output_table):
                     # If we do not find one cached, then add a blank
                     blank = np.empty(shape=0, dtype=output_table.dtype)
                     output_table = np.hstack((output_table, blank))
@@ -120,11 +133,11 @@ def ref(hduls, read_ext=-1, write_ext="REF"):
                 if np.isnan(val):
                     elm[j] = 0.0
         # only append the hdul if output_table is not empty
-        if not output_table:
+        if len(output_table):
             hdul.append(fits.BinTableHDU(data=output_table, header=header, name=extname))
         else:
             warnings.warn(f"empty reference table created, no stars found in the database corresponding to {hdul}")
-        yield hdul # not sure if I should be yielding hdul even if output_table is empty
+        yield hdul
     return
 
 @cli.cli.command("ref")
