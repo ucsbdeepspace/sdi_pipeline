@@ -175,6 +175,43 @@ def collate(hduls, name="CAT", tablename="OBJ", coords=None, algorithm="DBSCAN",
     cluster_ratio(hduls, name, tablename)
     return (hdul for hdul in hduls)
 
+#Functions to be used on either individual clusters or the whole list of clusters returned by hdultocluster()
+def cluster_mean(cluster, dim='flux'):
+    """
+    Returns the mean value of a particular dimension for a cluster.
+    Arguments:
+        cluster -- singular entry(cluster) from hdultocluster()
+        dim -- dimension for which mean will be calculated and returned
+    """
+    sources = len(cluster[dim]) - list(cluster[dim]).count(0)
+    return sum(cluster[dim])/sources
+
+#cluster analysis tools
+def hdultocluster(hduls, name="CAT", tablename="OBJ"):
+    data = [hdul[name].data for hdul in hduls]
+    datatype = data[0].dtype
+    clusters = [np.zeros(len(hduls), dtype=datatype) for i in range(len(hduls[0][tablename].data))]
+    #clusters = [np.zeros(len(hduls), dtype=datatype) for i in range(len(hduls[0]))]
+    for i in range(len(hduls)):
+        imdata = data[i]
+        indexes = hduls[i][tablename].data
+        #indexes = hduls[i][name].data
+        for j in range(len(indexes)):
+            index = indexes[j][0]
+            if index != -1:
+                for k in range(len(datatype)):
+                    clusters[j][i][k] = imdata[index][k]
+    return clusters
+
+def cluster_search_radec(clusters, ra, dec):
+    means = [[cluster_mean(cluster, 'ra'), cluster_mean(cluster, 'dec')] for cluster in clusters]
+    dist = np.inf
+    smallest = None
+    for i in range(len(means)):
+        if dist_func(means[i], [ra,dec]) < dist:
+            dist = dist_func(means[i], [ra,dec])
+            smallest = i
+    return clusters[smallest]
 
 @cli.cli.command("collate")
 @click.option("-n", "--name", default="CAT", help="name of HDU for each HDUL containing catalog of sources")

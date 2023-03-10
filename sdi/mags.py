@@ -1,17 +1,20 @@
+import click
+import ois
 import numpy as np
-import matplotlib.pyplot as plt
 import sep
 from astropy.io import fits
 from astropy import units as u
+from . import _cli as cli
 from astropy.coordinates import SkyCoord
 from photutils.aperture import CircularAperture
 from photutils.aperture import aperture_photometry
 from glob import glob
+# TODO: This version of make_source_mask is depreciated, need to change if updates on photutil is needed
 from photutils.segmentation import make_source_mask
 from astropy.stats import sigma_clipped_stats
 from astropy.time import Time
 #Inter script functions
-from collate import hdultocluster, cluster_search_radec
+from .collate import hdultocluster, cluster_search_radec
 import warnings
 import scipy as sp
 import csv
@@ -94,13 +97,14 @@ def photometry(x,y,aperture,sci_img):
     by conducting photometry on a masked and background subtracted image
     '''
 
-    data = sci_img['SCI'].data
-    gain = sci_img['SCI'].header['GAIN']
+    data = sci_img['ALGN'].data
+    gain = sci_img['ALGN'].header['GAIN']
     #exp_time = sci_img['SCI'].header['EXPTIME']
 
     # masking
     mask = make_source_mask(data, nsigma=2, npixels=5, dilate_size=11)
-    data = data.byteswap().newbyteorder()
+    #data = data.byteswap().newbyteorder()
+    data = np.ascontiguousarray(data)
     bkg = sep.Background(data, mask=mask)
     imgdata_bkgsub = data - bkg.back()
     # create an error map (extra steps are taken to handle negative values)
@@ -108,7 +112,7 @@ def photometry(x,y,aperture,sci_img):
 
     # Photometry
     source_pos = np.transpose((x, y))
-    source_ap = CircularAperture(source_pos, r=aperture)
+    source_ap = CircularAperture(source_pos, r=abs(aperture))
     source_flux = aperture_photometry(imgdata_bkgsub, source_ap, error=errmap)
     mag = -2.5 * np.log10(source_flux['aperture_sum'] * gain)
     magerr = np.sqrt(((-5 / ((2 * np.log10(10)) * (source_flux['aperture_sum'] * gain))) * (source_flux['aperture_sum_err'] * gain)) ** 2)
@@ -165,13 +169,15 @@ def mad_curve_fit(ZP_guess, c0_guesses, i_mag, g, g_r): #Recursively, minimizes 
     best_params = params[np.where(median_list == np.min(median_list))[0][0]]
     return best_params
 
-def mags(hduls, read_ext):
+def mags(hduls, read_ext="XRT"):
     """
     Function for generating the apparent magnitude of any arbitrary sources
     """
     # Retrieve all images
-    ims = [hdul for i in hduls]
+    ims = [i for i in hduls]
     # Collect sources
+    ref_ra = ims[0]['REF'].data['ra']
+    ref_dec = ims[0]['REF'].data['dec']
     refcoord = SkyCoord(ref_ra,ref_dec,frame = 'icrs',unit='degree')
 
     #Eachof these tables are the one source across all images
@@ -183,13 +189,14 @@ def mags(hduls, read_ext):
     #Test source RR Lyra
     #target_coord = SkyCoord(11.291,41.508, frame = 'icrs', unit = 'degree') #RR Lyrae
     # target_coord = SkyCoord(11.35917106, 41.59111281, frame = 'icrs', unit = 'degree') #Some other random star
-    target = cluster_search_radec(cat_source, target_coords.ra.deg, target_coords.dec.deg)
+    #target = [cluster_search_radec(cat_source, i.ra.deg, i.dec.deg) for i in target_coords]
 
     # Find reference stars
-    compcoords = refcoord
+    comp_coords = refcoord
     # Remove variable stars in reference stars catalog
     var_sources = [cluster_search_radec(var_source, coord.ra.deg, coord.dec.deg) for coord in comp_coords]
     var_coords = [SkyCoord(v['ra'],v['dec'], frame = 'icrs', unit = 'degree') for v in var_sources][0]
+    target = var_sources
 
     nonvar_idx = []
     for v in var_coords:
@@ -200,110 +207,125 @@ def mags(hduls, read_ext):
                 pass
     comp_coords_new = np.array(comp_coords)[list(set(nonvar_idx))]
 
-    comp_sources = [cluster_search_radec(cat_source, coord.ra.deg, coord.dec.deg) for coord in comp_coords_new]
-    comp_stars = [cluster_search_radec(ref_source, coord.ra.deg, coord.dec.deg) for coord in comp_coords_new]
+    comp_sources_tot = [cluster_search_radec(cat_source, coord.ra.deg, coord.dec.deg) for coord in comp_coords_new]
+    comp_stars_tot = [cluster_search_radec(ref_source, coord.ra.deg, coord.dec.deg) for coord in comp_coords_new]
     
+    # TODO: Iterate through all target sources
+    for tar in target:
     # Remove all the images for which the target star could not be found by removing places that have zeroes
-    t_idx = np.where(target['x']!=0)
-    target = target[t_idx]
+        t_idx = np.where(tar['x']!=0)
+        tar = tar[t_idx]
 
-    # next remove those indices in all the comp stars and sources, and remove those images
-    comp_stars = [comp_stars[i][t_idx] for i in range(0,len(comp_stars))]
-    comp_sources = [comp_sources[i][t_idx] for i in range(0,len(comp_sources))]
-    ims_new = [i for i in t_idx[0]]
+        # next remove those indices in all the comp stars and sources, and remove those images
+        comp_stars = [comp_stars_tot[i][t_idx] for i in range(0,len(comp_stars_tot))]
+        comp_sources = [comp_sources_tot[i][t_idx] for i in range(0,len(comp_sources_tot))]
+        ims_new = [i for i in t_idx[0]]
 
-    # Now check for zero x, y, and a in the comp stars. If there are zero values, remove the comp source entirely
-    c_idx = []
-    for i in range(0,len(comp_sources)):
-        if comp_sources[i]['x'].all()!=0 and comp_sources[i]['y'].all()!=0 and comp_sources[i]['a'].all()!=0:
-            c_idx.append(i)
-
-    comp_sources = np.array(comp_sources)[c_idx] # The flux of the reference stars in our images
-    comp_stars = np.array(comp_stars)[c_idx] # The apparent magnitude of reference stars in Gaia
-
-    # Convert Gaia g, r magnitudes to SDSS g' r' magnitudes. This is because our images are taken in SDSS g' r' filters
-    norm_compstar = np.array([norm(i) for i in comp_stars])
-    mag_temp = norm_compstar[:,0,0]
-    r_temp = norm_compstar[:,1,0]
-    target_mag = []
-    target_magerr = []
-    ts = []
-    times = [im[0].header['OBSMJD'] for im in sci_ims]
-    for im in ims_new:
-        try:
-            t = sci_ims[im][0].header['DATE-OBS']
-            times = Time(t)
-            time = times.mjd
-            ts.append(time)
-        except IndexError:
-            t = sci_ims[im]['SCI'].header['OBSMJD']
-            ts.append(np.array(t))
-
-        gain = sci_ims[im][0].header['GAIN']
-    #Calculate the instrumental magnitude (flux) of the star
-        target_inst_mag = photometry(target['x'][im],target['y'][im], target['a'][im], sci_ims[im])[0][0]
-        target_mag_err = photometry(target['x'][im],target['y'][im], target['a'][im], sci_ims[im])[1][0]
-        instrumental_mag = []
-        in_magerr = []
+        # Now check for zero x, y, and a in the comp stars. If there are zero values, remove the comp source entirely
+        c_idx = []
         for i in range(0,len(comp_sources)):
-            arr = photometry(comp_sources[i]['x'][im],comp_sources[i]['y'][im], comp_sources[i]['a'][im], sci_ims[im])
-            instrumental_mag.append(arr[0][0])
-            in_magerr.append(arr[1][0])
-
-        #Only select reference stars that are brighter than 20th magnitude
-        bright_idx = []
-        ref_magerr = 0.16497
-        for i in range(0,len(instrumental_mag)):
-            if mag_temp[i] < 18: #20 is the lowest magnitude our pipeline can detect
-                bright_idx.append(i)
+            if comp_sources[i]['x'].all()!=0 and comp_sources[i]['y'].all()!=0 and comp_sources[i]['a'].all()!=0:
+                c_idx.append(i)
             else:
                 pass
-        instrumental_mag = np.array(instrumental_mag)[bright_idx]
-        ref_mag = np.array(mag_temp)[bright_idx]
-        r_ref_mag = np.array(r_temp)[bright_idx]
-    
-        #First find all places where there are non-nan values:
-        idx = np.where([np.isnan(r)==False for r in ref_mag])[0]
-        i_mag = [instrumental_mag[i] for i in idx]
-        g = [ref_mag[i] for i in idx]
-        r = [r_ref_mag[i] for i in idx]
-        i_mag = np.array(i_mag)
-        g = np.array(g)
-        r = np.array(r)
-        g_r = g-r
-        i_g = i_mag - g
 
-        #Assuming Gaia's magnitudes are the true values of the star, we can use our instrumental mags in g to estimate uncertainty.
-        zp_guesses = np.linspace(25, 30, 80)
-        bkgd_guesses = np.linspace(15000, 25000, 100)
-        c0_guesses = np.linspace(-1.5, 1.5, 20)
+        print(c_idx)
+        if len(c_idx)==0:
+            break
+        else:
+            pass
 
-        best_params = mad_curve_fit(zp_guesses, c0_guesses, i_mag, g, g_r)
-        zp = best_params[0]
-        c0 = best_params[1]
+        comp_sources = np.array(comp_sources)[c_idx] # The flux of the reference stars in our images
+        comp_stars = np.array(comp_stars)[c_idx] # The apparent magnitude of reference stars in Gaia
 
-        bkgd = bkgd_fit(bkgd_guesses, zp, i_mag, i_g, 1.6, 12.5)
+        # Convert Gaia g, r magnitudes to SDSS g' r' magnitudes. This is because our images are taken in SDSS g' r' filters
+        norm_compstar = np.array([norm(i) for i in comp_stars])
+        mag_temp = norm_compstar[:,0,0]
+        r_temp = norm_compstar[:,1,0]
+        target_mag = []
+        target_magerr = []
+        ts = []
+        # Temporary solution for discrepency in observation time flag name among different images
+        try:
+            times = [im['ALGN'].header['OBSMJD'] for im in ims]
+        except KeyError:
+            times = [im['ALGN'].header['MJD-OBS'] for im in ims]
+        for im in ims_new:
+            try:
+                t = ims[im]['ALGN'].header['DATE-OBS']
+                times = Time(t)
+                time = times.mjd
+                ts.append(time)
+            except IndexError:
+                t = ims[im]['SCI'].header['OBSMJD']
+                ts.append(np.array(t))
+
+            gain = ims[im]['ALGN'].header['GAIN']
+        #Calculate the instrumental magnitude (flux) of the star
+            target_inst_mag = photometry(tar['x'][im],tar['y'][im], tar['a'][im], ims[im])[0][0]
+            target_mag_err = photometry(tar['x'][im],tar['y'][im], tar['a'][im], ims[im])[1][0]
+            instrumental_mag = []
+            in_magerr = []
+            for i in range(0,len(comp_sources)):
+                arr = photometry(comp_sources[i]['x'][im],comp_sources[i]['y'][im], comp_sources[i]['a'][im], ims[im])
+                instrumental_mag.append(arr[0][0])
+                in_magerr.append(arr[1][0])
+
+            #Only select reference stars that are brighter than 20th magnitude
+            bright_idx = []
+            ref_magerr = 0.16497
+            for i in range(0,len(instrumental_mag)):
+                if mag_temp[i] < 18: #20 is the lowest magnitude our pipeline can detect
+                    bright_idx.append(i)
+                else:
+                    pass
+            instrumental_mag = np.array(instrumental_mag)[bright_idx]
+            ref_mag = np.array(mag_temp)[bright_idx]
+            r_ref_mag = np.array(r_temp)[bright_idx]
+
+            #First find all places where there are non-nan values:
+            idx = np.where([np.isnan(r)==False for r in ref_mag])[0]
+            i_mag = [instrumental_mag[i] for i in idx]
+            g = [ref_mag[i] for i in idx]
+            r = [r_ref_mag[i] for i in idx]
+            i_mag = np.array(i_mag)
+            g = np.array(g)
+            r = np.array(r)
+            g_r = g-r
+            i_g = i_mag - g
+
+            #Assuming Gaia's magnitudes are the true values of the star, we can use our instrumental mags in g to estimate uncertainty.
+            zp_guesses = np.linspace(25, 30, 80)
+            bkgd_guesses = np.linspace(15000, 25000, 100)
+            c0_guesses = np.linspace(-1.5, 1.5, 20)
+
+            best_params = mad_curve_fit(zp_guesses, c0_guesses, i_mag, g, g_r)
+            zp = best_params[0]
+            c0 = best_params[1]
+
+            bkgd = bkgd_fit(bkgd_guesses, zp, i_mag, i_g, 1.6, 12.5)
         
         #     #===============scipy g-r fit=====================
         # def fit(g_inst, zp, c0):
         #     g = g_inst + zp + c0*g_r
         #     return g
     
-        target_mag_err = Error_Finder(bkgd, target_inst_mag, 1.6, 12.5)
+            target_mag_err = Error_Finder(bkgd, target_inst_mag, 1.6, 12.5)
         # gr_popt, gr_pcov = sp.optimize.curve_fit(fit, i_mag, g, p0 = [0, 23], sigma=mag_err)
         # _, zp_err = np.sqrt(np.diag(gr_pcov))
         # print('zp = ', gr_popt[0], 'c0= ', gr_popt[1])
 
-        target_mag.append(target_inst_mag + zp)
-        target_magerr.append(target_mag_err)
+            target_mag.append(target_inst_mag + zp)
+            target_magerr.append(target_mag_err)
 
-    # Output results (the output at the moment is csv files)
-    rows = zip(target_mag, target_magerr, ts)
-    wfname = 'source.csv'
-    with open(wfname, 'w') as f:
-        writer = csv.writer(f)
-        for row in rows:
-            writer.writerow(row)
+        # Output results (the output at the moment is csv files)
+        rows = zip(target_mag, target_magerr, ts)
+        wfname = 'source.csv'
+        with open(wfname, 'w') as f:
+            writer = csv.writer(f)
+            for row in rows:
+                writer.writerow(row)
+    return (hdul for hdul in hduls)
 
 
 @cli.cli.command("mags")
@@ -311,7 +333,7 @@ def mags(hduls, read_ext):
               help="An index number or ext name that identifies the target sources you want.") 
 @cli.operator
 
-def mags_cmd(hduls, threshold, read_ext, write_ext):
+def mags_cmd(hduls, read_ext):
     """
     Uses sep to find sources in ImageHDU data.
     """

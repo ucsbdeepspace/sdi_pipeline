@@ -28,7 +28,7 @@ def _in_cone(coord: SkyCoord, cone_center: SkyCoord, cone_radius: u.deg):
     d = (coord.ra - cone_center.ra) ** 2 + (coord.dec - cone_center.dec) ** 2
     return d < (cone_radius ** 2)
 
-def ref(hduls, read_ext=-1, write_ext="REF"):
+def ref(hduls, read_ext="CAT", write_ext="REF"):
     """
     add information about remote reference stars to a 'REF' BinTableHDU
     \b
@@ -48,24 +48,24 @@ def ref(hduls, read_ext=-1, write_ext="REF"):
     from astroquery.gaia import Gaia
     Gaia.ROW_LIMIT = -1
 
-    queried_coords = []
-    cached_coords = []
     cached_table = np.array([])
 
     # Conduct a cone search that covers all possible sources in the image with one query
     # Use the header info in the first image for cone search size
-    hdul_init = next(hduls)
-    cone_radius = max([hdul_init['read_ext'].header['ZNAXIS1'], hdul_init['read_ext'].header['ZNAXIS2']])*hdul_init['ALGN'].header['PIXSCALE']/3600
-    cone_radius = u.Quantity(threshold, u.deg)
+    hduls = [h for h in hduls]
+    hdul_init = hduls[0]
+    cone_radius = max([hdul_init['ALGN'].header['NAXIS1'], hdul_init['ALGN'].header['NAXIS2']])*hdul_init['ALGN'].header['PIXSCALE']/3600
+    cone_radius = u.Quantity(cone_radius, u.deg)
     # Make the query
-    data = Gaia.cone_search_async(coord, cone_radius, columns=COLUMNS, output_format="csv").get_results()
+    centercoord = SkyCoord(hdul_init['ALGN'].header['RA'], hdul_init['ALGN'].header['DEC'], unit="deg")
+    data = Gaia.cone_search_async(centercoord, cone_radius, columns=COLUMNS, output_format="csv").get_results()
     data = data.as_array()
     cached_table = data.data
+    print(len(cached_table))
     
     # we need this to track blanks till we know the dtype
     initial_empty = 0
     
-    # TODO:  change this loop to after astroquery
     for hdul in hduls:
     # An adaptive method of obtaining the threshold value
         threshold = max(hdul[read_ext].data["a"])*hdul['ALGN'].header['PIXSCALE']/3600
@@ -100,7 +100,7 @@ def ref(hduls, read_ext=-1, write_ext="REF"):
 
             ########### Look through our cache for matches #####################
             appended = False
-            for ct, cs in zip(cached_table, cached_coords):
+            for ct, cs in zip(cached_table, coordinates):
                 # look through the cache to find a match
                 if _in_cone(cs, coord, threshold):
                     # if we find a match, copy it to the output table
@@ -144,7 +144,7 @@ def ref(hduls, read_ext=-1, write_ext="REF"):
 @click.option("-r", "--read-ext", default="CAT", help="The HDU to match")
 @click.option("-w", "--write-ext", default="REF", help="The HDU to load ref into")
 @cli.operator
-def ref_cmd(hduls, read_ext=-1, write_ext="REF"):
+def ref_cmd(hduls, read_ext="CAT", write_ext="REF"):
     """
     add information about remote reference stars to a 'REF' BinTableHDU
     \b
