@@ -9,7 +9,7 @@ HISTORY
 import click
 import numpy as np
 import multiprocessing as mp
-from multiprocessing import shared_memory
+import multiprocessing.shared_memory as shared_memory
 import os
 import astroalign
 #from .snr_function import snr
