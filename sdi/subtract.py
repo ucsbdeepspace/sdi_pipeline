@@ -12,7 +12,7 @@ import time
 import numpy as np                                           #sfft specific
 import sys
 
-def subtract(hduls, name="ALGN", method = "sfft", bpm = "bpm"):
+def subtract(hduls, name="ALGN", method = "sfft", bpm = "bpm", kerpolyorder = 1, bgpolyorder = 1):
     """
     Returns differences of a set of images from a template image
     Arguments:
@@ -20,6 +20,8 @@ def subtract(hduls, name="ALGN", method = "sfft", bpm = "bpm"):
         name -- name of the HDU to use image that the other images will be subtracted from
         method -- method of subtraction. OIS is default (best/slow). Numpy is alternative (worse/quick)
         bpm -- name of the HDU that contains the bad pixel mask. Used in SFFT subtraction.
+        KerPolyOrder -- Polynomial order of the kernel. SFFT only. Default 2.
+        BGPolyOrder -- Polynomial order of the background. SFFT only. Default 2.
     """
     hduls = [h for h in hduls]
     outputs = []
@@ -29,6 +31,8 @@ def subtract(hduls, name="ALGN", method = "sfft", bpm = "bpm"):
         start = time.perf_counter()
         temp_image_fits_filenames = []
         temp_bpm_fits_filenames = []
+        pixel_scales = []
+        image_FWHMs = []
         venv_file_path = sys.prefix
         for i, hdu in enumerate(hduls): 
             temp_filename = venv_file_path + "/sdi_pipeline/sdi/temp_image{}.fits".format(i) #Write the science hduls into temporary fits files
@@ -42,6 +46,15 @@ def subtract(hduls, name="ALGN", method = "sfft", bpm = "bpm"):
             primary_bpm = fits.PrimaryHDU(temp_bpm)
             primary_bpm.writeto(temp_bpm_filename, overwrite = True)
             temp_bpm_fits_filenames.append(temp_bpm_filename)
+
+            header = hdu[1].header
+            pixel_scale = header['PIXSCALE'] 
+            pixel_scales.append(float(pixel_scale)) #in arcseconds
+            
+            image_FWHM = header['L1FWHM']
+            image_FWHMs.append(float(image_FWHM))
+
+            print("pixel scale  = {} arc/pixel and image FWHM = {} pixels".format(pixel_scale, image_FWHM)) 
 
         temp_ref_path = venv_file_path + "/sdi_pipeline/temp_ref.fits"
         template_fits = combine(hduls, name) # Create the reference image
@@ -68,8 +81,10 @@ def subtract(hduls, name="ALGN", method = "sfft", bpm = "bpm"):
         start = time.perf_counter()
         print("Method = sfft")  #TODO Incorperate input masks for when we take real data
         for i, fits_name in enumerate(temp_image_fits_filenames):       
+            GKerHW = 2 * int(image_FWHMs[i]/pixel_scales[i]) # Given Kernel Half Width in Pixels 
+            
             sol, diff = Customized_Packet.CP(FITS_REF = temp_ref_path, FITS_SCI = fits_name, FITS_mREF = temp_ref_bpm_path, FITS_mSCI = temp_bpm_fits_filenames[i], 
-                                    ForceConv = "REF", GKerHW = 4, BGPolyOrder = 2, KerPolyOrder = 2)    
+                                    ForceConv = "REF", GKerHW = GKerHW, BGPolyOrder = bgpolyorder, KerPolyOrder = kerpolyorder)    
             
             if np.isnan(np.sum(diff)) == True:
                 raise ValueError("Residual contains NaN")
@@ -106,9 +121,9 @@ def subtract(hduls, name="ALGN", method = "sfft", bpm = "bpm"):
             start = time.perf_counter()
             print("Subtracting {} / {} hdul".format(i+1, len(hduls)))
             try:
-                diff = ois.optimal_system(image=hdu[name].data, refimage=template['PRIMARY'].data, method='Bramich')[0]
+                diff = ois.optimal_system(image=hdu[name].data, refimage=template['PRIMARY'].data, method='AdaptiveBramich')[0]
             except ValueError:
-                diff = ois.optimal_system(image=hdu[name].data.byteswap().newbyteorder(), refimage=template['PRIMARY'].data.byteswap().newbyteorder(), method='Bramich')[0]
+                diff = ois.optimal_system(image=hdu[name].data.byteswap().newbyteorder(), refimage=template['PRIMARY'].data.byteswap().newbyteorder(), method='AdaptiveBramich')[0]
             hdu.insert(1,CompImageHDU(data = diff, header =  hduls[i][name].header, name = "SUB"))
             outputs.append(hdu)
             stop = time.perf_counter()
@@ -127,17 +142,22 @@ def subtract(hduls, name="ALGN", method = "sfft", bpm = "bpm"):
 
 @cli.cli.command("subtract")
 @click.option("-n", "--name", default="ALGN", help="The HDU to be aligned.")
-@click.option("-m", "--method", default= "sfft", help="The subtraction method to use; ois or numpy (straight subtraction) or sfft (GPU accelerated). sfft-sparse and sfft-croweded are in development")
+@click.option("-m", "--method", default= "sfft", help="The subtraction method to use; ois or numpy (straight subtraction) or sfft (GPU accelerated).")
 @click.option("-b", "--bpm", default= "bpm", help="The HDU of the bad pixel mask. Used in SFFT subtraction.")
+@click.option("-k", "--kerpolyorder", default= 1, help= "Polynomial order of the kernel. SFFT only. Default 2.", type = int)
+@click.option("-g", "--bgpolyorder", default= 1, help="Polynomial order of the background. SFFT only. Default 2", type = int)
 @cli.operator
 
 ## subtract function wrapper
-def subtract_cmd(hduls,name="ALGN", method="sfft", bpm = "bpm"):
+def subtract_cmd(hduls, name="ALGN", method="sfft", bpm = "bpm", kerpolyorder = 1, bgpolyorder = 1):
     """
     Returns differences of a set of images from a template image\n
     Arguments:\n
         hduls -- list of fits hdul's where the last image is the template\n
         name -- name of the HDU to use image that the other images will be subtracted from\n
-        method -- method of subtraction. OIS is default (best/slow). Numpy is alternative (worse/quick)
+        method -- method of subtraction. OIS is default (best/slow). Numpy is alternative (worse/quick)\n
+        bpm -- name of the HDU that contains the bad pixel mask. Used in SFFT subtraction.\n
+        KerPolyOrder -- Polynomial order of the kernel. SFFT only. Default 2.\n
+        BGPolyOrder -- Polynomial order of the background. SFFT only. Default 2.\n
     """
-    return subtract(hduls, name, method)
+    return subtract(hduls, name, method, bpm, kerpolyorder, bgpolyorder)
