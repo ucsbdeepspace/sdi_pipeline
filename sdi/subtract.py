@@ -20,8 +20,8 @@ def subtract(hduls, name="ALGN", method = "sfft", bpm = "bpm", kerpolyorder = 1,
         name -- name of the HDU to use image that the other images will be subtracted from
         method -- method of subtraction. OIS is default (best/slow). Numpy is alternative (worse/quick)
         bpm -- name of the HDU that contains the bad pixel mask. Used in SFFT subtraction.
-        KerPolyOrder -- Polynomial order of the kernel. SFFT only. Default 2.
-        BGPolyOrder -- Polynomial order of the background. SFFT only. Default 2.
+        KerPolyOrder -- Polynomial order of the kernel. SFFT only. Default 1.
+        BGPolyOrder -- Polynomial order of the background. SFFT only. Default 1.
     """
     hduls = [h for h in hduls]
     outputs = []
@@ -144,8 +144,8 @@ def subtract(hduls, name="ALGN", method = "sfft", bpm = "bpm", kerpolyorder = 1,
 @click.option("-n", "--name", default="ALGN", help="The HDU to be aligned.")
 @click.option("-m", "--method", default= "sfft", help="The subtraction method to use; ois or numpy (straight subtraction) or sfft (GPU accelerated).")
 @click.option("-b", "--bpm", default= "bpm", help="The HDU of the bad pixel mask. Used in SFFT subtraction.")
-@click.option("-k", "--kerpolyorder", default= 1, help= "Polynomial order of the kernel. SFFT only. Default 2.", type = int)
-@click.option("-g", "--bgpolyorder", default= 1, help="Polynomial order of the background. SFFT only. Default 2", type = int)
+@click.option("-k", "--kerpolyorder", default= 1, help= "Polynomial order of the kernel. SFFT only. Default 1.", type = int)
+@click.option("-g", "--bgpolyorder", default= 1, help="Polynomial order of the background. SFFT only. Default 1", type = int)
 @cli.operator
 
 ## subtract function wrapper
@@ -157,7 +157,7 @@ def subtract_cmd(hduls, name="ALGN", method="sfft", bpm = "bpm", kerpolyorder = 
         name -- name of the HDU to use image that the other images will be subtracted from\n
         method -- method of subtraction. OIS is default (best/slow). Numpy is alternative (worse/quick)\n
         bpm -- name of the HDU that contains the bad pixel mask. Used in SFFT subtraction.\n
-        KerPolyOrder -- Polynomial order of the kernel. SFFT only. Default 2.\n
-        BGPolyOrder -- Polynomial order of the background. SFFT only. Default 2.\n
+        KerPolyOrder -- Polynomial order of the kernel. SFFT only. Default 1.\n
+        BGPolyOrder -- Polynomial order of the background. SFFT only. Default 1.\n
     """
     return subtract(hduls, name, method, bpm, kerpolyorder, bgpolyorder)
