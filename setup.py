@@ -32,4 +32,4 @@ setup(
 )
 subprocess.run(sys.executable + " -m pip install numpy==1.23.5", shell=True)
 subprocess.run(sys.executable + " -m pip install numba==0.53.1", shell=True)
-subprocess.run("cp ./sdi_pipeline/sdi/ois.cp.py ./lib/python3.9/site-packages/ois.py", shell=True)
+subprocess.run("cp ./sdi_pipeline/sdi/ois_cp.py ./lib/python3.9/site-packages/ois.py", shell=True)
