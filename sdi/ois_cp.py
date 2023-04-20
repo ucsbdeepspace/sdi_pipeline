@@ -26,7 +26,6 @@ __version__ = "0.2"
 import numpy as np
 from scipy import signal
 from scipy import ndimage
-from datetime import datetime as dt
 from numba import cuda
 import cupy as cp
 
@@ -176,8 +175,6 @@ class SubtractionStrategy(object):
         opt_image = convolve2d_cuda(
             self.refimage, kernel
         )
-        opt_image_cpu = signal.convolve2d(self.refimage, kernel,'same')
-        print("maximum Difference between CPU and GPU Convolutions is: {}".format( np.max(np.abs(opt_image-opt_image_cpu)/np.abs(opt_image_cpu))))
         if self.bkgdegree is not None:
             opt_image += self.get_background()
         if self.badpixmask is not None:
@@ -346,7 +343,6 @@ class BramichStrategy(SubtractionStrategy):
                     min_r_ref:max_r_ref, min_c_ref:max_c_ref
                 ]
                 c.extend([cij])
-
         # This is more pythonic but much slower (50 times slower)
         # canonBasis = np.identity(kw*kh).reshape(kh*kw,kh,kw)
         # c.extend([signal.convolve2d(refimage, kij, mode='same')
@@ -369,32 +365,30 @@ class BramichStrategy(SubtractionStrategy):
         if self.bkgdegree is not None:
             c_bkg = self.get_cmatrices_background()
             c.extend(c_bkg)
-
         n_c = len(c)
-        m = np.zeros((n_c, n_c))
+        m = np.zeros((n_c, n_c), dtype= np.float64)
         b = np.zeros(n_c)
         if self.badpixmask is None:
-            for j, cj in enumerate(c):
-                cj = np.asarray(cj, order="C")
-                for i in range(j, n_c):
-                    m[j, i] = np.tensordot(cj, np.asarray(c[i], order="C"))
-                    #end = dt.now()
-                    m[i, j] = m[j, i]
-                b[j] = np.vdot(self.image, cj.flatten())
-            # ~ m = np.array([[(ci * cj).sum() for ci in c] for cj in c])
-            # ~ b = np.array([(self.image * ci).sum() for ci in c])
-            end = dt.now()
+            listfromc = []
+            for i in range(len(c)):
+               listfromc.append(np.asarray(c[i], order = 'C').ravel())
+            c_m = np.vstack(listfromc)
+            m = np.matmul(c_m,c_m.T)
+            m = m[:n_c,:n_c]
+            a = np.zeros((len(c),len(c[0].flatten())))
+            c = np.stack(c)
+            a = c.reshape(c.shape[0],-1)
+            b = np.dot(a,self.image.flatten())
+            
         else:
             for j, cj in enumerate(c):
                 for i in range(j, n_c):
                     m[j, i] = (c[i] * cj)[~self.badpixmask].sum()
                     m[i, j] = m[j, i]
                 b[j] = (self.image * cj)[~self.badpixmask].sum()
-            # These next two lines take most of the computation time
-            # ~ m = np.array([[(ci * cj)[~self.badpixmask].sum() for ci in c] for cj in c])
-            # ~ b = np.array([(self.image * ci)[~self.badpixmask].sum() for ci in c])
         self.coeffs = np.linalg.solve(m, b)
         return self.coeffs
+
 
 
 class AdaptiveBramichStrategy(SubtractionStrategy):
@@ -489,7 +483,7 @@ def eval_adpative_kernel(kernel, x, y):
 def optimal_system(
     image,
     refimage,
-    kernelshape=(11, 11),
+    kernelshape=(27, 27),
     bkgdegree=None,
     method="Bramich",
     gridshape=None,
