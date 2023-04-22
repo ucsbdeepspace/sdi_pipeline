@@ -31,7 +31,7 @@ import cupy as cp
 import sys
 import numba as nb
 
-@nb.jit()
+@nb.jit(forceobj=True)
 def function_to_stack(input):
     a = np.vstack(input)
     return a
