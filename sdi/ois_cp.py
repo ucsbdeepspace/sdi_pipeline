@@ -28,6 +28,13 @@ from scipy import signal
 from scipy import ndimage
 from numba import cuda
 import cupy as cp
+import sys
+import numba as nb
+
+@nb.jit()
+def function_to_stack(input):
+    a = np.vstack(input)
+    return a
 
 @cuda.jit
 def convolve_kernel(result, kernel, image):
@@ -372,14 +379,16 @@ class BramichStrategy(SubtractionStrategy):
             listfromc = []
             for i in range(len(c)):
                listfromc.append(np.asarray(c[i], order = 'C').ravel())
-            c_m = np.vstack(listfromc)
-            m = np.matmul(c_m,c_m.T)
+            c_m = function_to_stack(listfromc)
+            c_m = cp.asarray(c_m)
+            m = cp.matmul(c_m,c_m.T)
+            m = m.get()
             m = m[:n_c,:n_c]
             a = np.zeros((len(c),len(c[0].flatten())))
+            del c_m
             c = np.stack(c)
             a = c.reshape(c.shape[0],-1)
             b = np.dot(a,self.image.flatten())
-            
         else:
             for j, cj in enumerate(c):
                 for i in range(j, n_c):
@@ -483,7 +492,7 @@ def eval_adpative_kernel(kernel, x, y):
 def optimal_system(
     image,
     refimage,
-    kernelshape=(27, 27),
+    kernelshape=(11, 11),
     bkgdegree=None,
     method="Bramich",
     gridshape=None,
