@@ -373,29 +373,29 @@ class BramichStrategy(SubtractionStrategy):
             c_bkg = self.get_cmatrices_background()
             c.extend(c_bkg)
         n_c = len(c)
-        m = np.zeros((n_c, n_c), dtype= np.float64)
-        b = np.zeros(n_c)
         if self.badpixmask is None:
             listfromc = []
             for i in range(len(c)):
                listfromc.append(np.asarray(c[i], order = 'C').ravel())
             c_m = function_to_stack(listfromc)
-            c_m = cp.asarray(c_m)
+            stream = cp.cuda.Stream()
+            with stream:
+                c_gpu = cp.array(c)
+                img_gpu = cp.array(self.image.flatten())
+                c_m = cp.array(c_m)
             m = cp.matmul(c_m,c_m.T)
-            m = m.get()
             m = m[:n_c,:n_c]
-            a = np.zeros((len(c),len(c[0].flatten())))
             del c_m
-            c = np.stack(c)
+            c = cp.stack(c_gpu)
             a = c.reshape(c.shape[0],-1)
-            b = np.dot(a,self.image.flatten())
+            b = cp.dot(a,img_gpu)
         else:
             for j, cj in enumerate(c):
                 for i in range(j, n_c):
                     m[j, i] = (c[i] * cj)[~self.badpixmask].sum()
                     m[i, j] = m[j, i]
                 b[j] = (self.image * cj)[~self.badpixmask].sum()
-        self.coeffs = np.linalg.solve(m, b)
+        self.coeffs = cp.linalg.solve(m, b).get()
         return self.coeffs
 
 
