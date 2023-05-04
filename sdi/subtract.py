@@ -12,7 +12,7 @@ import time
 import numpy as np                                           #sfft specific
 import sys
 
-def subtract(hduls, name="ALGN", method = "sfft", bpm = "bpm", kerpolyorder = 1, bgpolyorder = 1):
+def subtract(hduls, name="ALGN", method='sfft', bpm = "bpm", kerpolyorder = 1, bgpolyorder = 1,kernelsize=11):
     """
     Returns differences of a set of images from a template image
     Arguments:
@@ -117,17 +117,16 @@ def subtract(hduls, name="ALGN", method = "sfft", bpm = "bpm", kerpolyorder = 1,
     elif method == "ois":
         print("Method = OIS")
         template = combine(hduls, name)
+        imagesize = hduls[0][name].data.shape
+        shape = imagesize[0],imagesize[1],len(hduls)
+        try:
+            opt_image = ois.optimal_system(image=hduls[0][name].data, refimage=template["PRIMARY"].data, method='Bramich',kernelshape = (kernelsize,kernelsize))[1]
+        except ValueError:
+            opt_image = ois.optimal_system(image=hduls[0][name].data.byteswap().newbyteorder(), refimage=template["PRIMARY"].data.byteswap().newbyteorder(), method='Bramich', kernelshape = (kernelsize, kernelsize))[1]
         for i,hdu in enumerate(hduls):
-            start = time.perf_counter()
-            print("Subtracting {} / {} hdul".format(i+1, len(hduls)))
-            try:
-                diff = ois.optimal_system(image=hdu[name].data, refimage=template['PRIMARY'].data, method='AdaptiveBramich')[0]
-            except ValueError:
-                diff = ois.optimal_system(image=hdu[name].data.byteswap().newbyteorder(), refimage=template['PRIMARY'].data.byteswap().newbyteorder(), method='AdaptiveBramich')[0]
-            hdu.insert(1,CompImageHDU(data = diff, header =  hduls[i][name].header, name = "SUB"))
+            diff = hdu[name].data - opt_image
+            hdu.insert(1,CompImageHDU(data = diff, header =  hdu[name].header, name = "SUB"))
             outputs.append(hdu)
-            stop = time.perf_counter()
-            print("Time elapsed: {} seconds".format(stop-start))
 
     elif method == "numpy":
         print("Method = Numpy")
@@ -142,6 +141,7 @@ def subtract(hduls, name="ALGN", method = "sfft", bpm = "bpm", kerpolyorder = 1,
 
 @cli.cli.command("subtract")
 @click.option("-n", "--name", default="ALGN", help="The HDU to be aligned.")
+@click.option('-o', '--kernelsize', default = 11, help = 'Define Kernel Size for Bramich')
 @click.option("-m", "--method", default= "sfft", help="The subtraction method to use; ois or numpy (straight subtraction) or sfft (GPU accelerated).")
 @click.option("-b", "--bpm", default= "bpm", help="The HDU of the bad pixel mask. Used in SFFT subtraction.")
 @click.option("-k", "--kerpolyorder", default= 1, help= "Polynomial order of the kernel. SFFT only. Default 1.", type = int)
@@ -149,7 +149,7 @@ def subtract(hduls, name="ALGN", method = "sfft", bpm = "bpm", kerpolyorder = 1,
 @cli.operator
 
 ## subtract function wrapper
-def subtract_cmd(hduls, name="ALGN", method="sfft", bpm = "bpm", kerpolyorder = 1, bgpolyorder = 1):
+def subtract_cmd(hduls, name="ALGN", method="sfft", bpm = "bpm", kerpolyorder = 1, bgpolyorder = 1,kernelsize=11):
     """
     Returns differences of a set of images from a template image\n
     Arguments:\n
@@ -160,4 +160,4 @@ def subtract_cmd(hduls, name="ALGN", method="sfft", bpm = "bpm", kerpolyorder = 
         KerPolyOrder -- Polynomial order of the kernel. SFFT only. Default 1.\n
         BGPolyOrder -- Polynomial order of the background. SFFT only. Default 1.\n
     """
-    return subtract(hduls, name, method, bpm, kerpolyorder, bgpolyorder)
+    return subtract(hduls, name, method, bpm, kerpolyorder, bgpolyorder,kernelsize)
