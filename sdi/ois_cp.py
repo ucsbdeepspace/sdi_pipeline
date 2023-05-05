@@ -103,7 +103,7 @@ def _has_mask(image):
 
 
 class SubtractionStrategy(object):
-    def __init__(self, image, refimage, kernelshape, bkgdegree):
+    def __init__(self, image, refimage, kernelshape, bkgdegree, c_m):
         self.k_shape = kernelshape
 
         # Check here for dimensions
@@ -124,6 +124,12 @@ class SubtractionStrategy(object):
         self.background = None
         self.kernel = None
         self.difference = None
+        self.m = None
+        self.c = None
+
+        if type(c_m) != int:
+            self.m = c_m[0]
+            self.c = c_m[1]
 
     def separate_data_mask(self, image, refimage):
         def ret_data(image):
@@ -355,7 +361,8 @@ class BramichStrategy(SubtractionStrategy):
         # c.extend([signal.convolve2d(refimage, kij, mode='same')
         #                 for kij in canonBasis])
         # canonBasis = None
-        return c
+        self.c = c
+        return self.c
 
     def get_kernel(self):
         if self.kernel is not None:
@@ -365,9 +372,7 @@ class BramichStrategy(SubtractionStrategy):
         self.kernel = coeffs[: (kh * kw)].reshape(self.k_shape)
         return self.kernel
 
-    def get_coeffs(self):
-        if self.coeffs is not None:
-            return self.coeffs
+    def get_m(self):
         c = self.get_cmatrices()
         if self.bkgdegree is not None:
             c_bkg = self.get_cmatrices_background()
@@ -385,174 +390,47 @@ class BramichStrategy(SubtractionStrategy):
                 c_m = cp.array(c_m)
             m = cp.matmul(c_m,c_m.T)
             m = m[:n_c,:n_c]
+            m = cp.asnumpy(m)
             del c_m
-            c = cp.stack(c_gpu)
-            a = c.reshape(c.shape[0],-1)
-            b = cp.dot(a,img_gpu)
+            self.m = m
+        return img_gpu, c, self.m
+    
+    def call_m(self):
+        return self.m
+    
+    def call_c(self):
+        return self.c
+
+    def get_coeffs(self):
+        if self.coeffs is not None:
+            return self.coeffs
+        if self.m is None:
+            img_gpu, c, m = self.get_m()
         else:
+            m = self.m
+            c = self.c
+        c = np.stack(c)
+        a = c.reshape(c.shape[0],-1)
+        b = cp.dot(a,self.image.flatten())
+        if self.badpixmask is not None:
             for j, cj in enumerate(c):
                 for i in range(j, n_c):
                     m[j, i] = (c[i] * cj)[~self.badpixmask].sum()
                     m[i, j] = m[j, i]
                 b[j] = (self.image * cj)[~self.badpixmask].sum()
-        self.coeffs = cp.linalg.solve(m, b).get()
+        self.coeffs = np.linalg.solve(m, b)
         return self.coeffs
-
-
-
-# class AdaptiveBramichStrategy(SubtractionStrategy):
-#     def __init__(self, image, refimage, kernelshape, bkgdegree, poly_degree=2):
-#         self.poly_deg = poly_degree
-#         self.poly_dof = (poly_degree + 1) * (poly_degree + 2) // 2
-#         self.k_side = kernelshape[0]
-
-#         super(AdaptiveBramichStrategy, self).__init__(
-#             image, refimage, kernelshape, bkgdegree
-#         )
-
-#     def get_optimal_image(self):
-#         # AdaptiveBramich has to override this function because it uses a
-#         # special type of convolution for optimal_image
-#         if self.optimal_image is not None:
-#             return self.optimal_image
-#         import varconv
-
-#         opt_image = varconv.convolve2d_adaptive(
-#             self.refimage, self.get_kernel(), self.poly_deg
-#         )
-#         if self.bkgdegree is not None:
-#             opt_image += self.get_background()
-#         if self.badpixmask is not None:
-#             self.optimal_image = np.ma.array(opt_image, mask=self.badpixmask)
-#         else:
-#             self.optimal_image = opt_image
-#         return self.optimal_image
-
-#     def get_kernel(self):
-#         if self.kernel is not None:
-#             return self.kernel
-#         poly_dof = (self.poly_deg + 1) * (self.poly_deg + 2) // 2
-#         k_dof = self.k_side * self.k_side * poly_dof
-#         ks = self.k_side
-#         coeffs = self.get_coeffs()
-#         self.kernel = coeffs[:k_dof].reshape((ks, ks, self.poly_dof))
-#         return self.kernel
-
-#     def get_coeffs(self):
-#         if self.coeffs is not None:
-#             return self.coeffs
-#         import varconv
-
-#         m, b = varconv.gen_matrix_system(
-#             self.image,
-#             self.refimage,
-#             self.badpixmask is not None,
-#             self.badpixmask,
-#             self.k_side,
-#             self.poly_deg,
-#             self.bkgdegree or -1,
-#         )
-#         self.coeffs = np.linalg.solve(m, b)
-#         return self.coeffs
-
-
-# def convolve2d_adaptive(image, kernel, poly_degree):
-#     "Convolve image with the adaptive kernel of `poly_degree` degree."
-#     import varconv
-
-#     # Check here for dimensions
-#     if image.ndim != 2:
-#         raise ValueError("Wrong dimensions for image")
-#     if kernel.ndim != 3:
-#         raise ValueError("Wrong dimensions for kernel")
-
-#     conv = varconv.convolve2d_adaptive(image, kernel, poly_degree)
-#     return conv
-
-
-# def eval_adpative_kernel(kernel, x, y):
-#     "Return the adaptive kernel at position (x, y) = (col, row)."
-#     if kernel.ndim == 2:
-#         return kernel
-
-#     kh, kw, dof = kernel.shape
-#     # The conversion from degrees of freedom (dof) to the polynomial degree
-#     # The last 0.5 is to round to nearest integer
-#     deg = int(-1.5 + np.sqrt(1 + 8 * dof) / 2 + 0.5)
-#     k_rolled = np.rollaxis(kernel, 2, 0)
-#     k_xy = np.zeros((kh, kw))
-#     d = 0
-#     for powx in range(deg + 1):
-#         for powy in range(deg - powx + 1):
-#             k_xy += k_rolled[d] * np.power(y, powy) * np.power(x, powx)
-#             d += 1
-#     return k_xy
-
 
 def optimal_system(
     image,
     refimage,
+    input,
     kernelshape=(11, 11),
     bkgdegree=None,
     method="Bramich",
     gridshape=None,
     **kwargs
 ):
-    """Do Optimal Image Subtraction and return optimal image, kernel
-    and background.
-
-    This is an implementation of a few Optimal Image Subtraction algorithms.
-    They all (optionally) simultaneously fit a background.
-
-    Args:
-        gridshape: A tuple containing the number of vertical and horizontal
-            divisions of a grid. Subtraction will be performed on each grid
-            element. ``None`` is equivalent to a ``(1, 1)`` grid (no grid).
-
-        kernelshape: Shape of the kernel to use. Must be of odd size.
-
-        bkgdegree: Degree of the polynomial to fit the background.
-            To turn off background fitting set this to ``None``.
-
-        method: One of the following strings.
-
-            * ``"Bramich"``: A Delta basis for the kernel (all pixels fit
-              independently)
-            * ``"AdaptiveBramich"``: Same as Bramich, but with a polynomial
-              variation across the image.
-              It needs the parameter ``poly_degree``, which is the polynomial
-              degree of the variation.
-            * ``"Alard-Lupton"``: A modulated multi-Gaussian kernel.
-              It needs the gausslist keyword.
-
-        poly_degree: Needed only for AdaptiveBramich. It is the degree
-            of the polynomial for the kernel spatial variation.
-
-        gausslist: Needed only for Alard-Lupton. A list of dictionaries with
-            info for the modulated multi-Gaussian.
-            Dictionary keys are:
-
-                * center: a (row, column) tuple for the center of the Gaussian.
-                  Default: kernel center.
-                * modPolyDeg: the degree of the modulating polynomial.
-                  Default: 2
-                * sx: sigma in x direction. Default: 2.
-                * sy: sigma in y direction. Deafult: 2.
-
-            All keys are optional. Example::
-
-                gausslist=[{center: (5, 5), sx: 2., sy: 2., modPolyDeg: 3},
-                           {sx: 1.0, sy: 2.5, modPolyDeg: 1},
-                           {sx: 3.0, sy: 1.0},]
-
-    Returns:
-        difference, optimal_image, kernel, background
-
-    Raises:
-        EvenSideKernelError: If any dimension of ``kernelshape`` is even.
-
-    """
-
     kh, kw = kernelshape
 
     if (kw % 2 == 0) or (kh % 2 == 0):
@@ -572,14 +450,15 @@ def optimal_system(
     if gridshape is None or gridshape == (1, 1):
         # If there's no grid, do without it
         subt_strat = DiffStrategy(
-            image, refimage, kernelshape, bkgdegree, **kwargs
+            image, refimage, kernelshape, bkgdegree, c_m = input, **kwargs
         )
         opt_image = subt_strat.get_optimal_image()
         kernel = subt_strat.get_kernel()
         background = subt_strat.get_background()
         difference = subt_strat.get_difference()
-        return difference, opt_image, kernel, background
-
+        m = subt_strat.call_m()
+        c = subt_strat.call_c()
+        return difference, opt_image, kernel, background, m, c
     else:
         ny, nx = gridshape
         h, w = image.shape
@@ -666,7 +545,7 @@ def optimal_system(
                 ref_stamps[ind],
                 kernelshape,
                 bkgdegree,
-                **kwargs
+                c_m = input
             )
             opti = subt_strat.get_optimal_image()
             ki = subt_strat.get_kernel()
