@@ -1,13 +1,13 @@
 import click
 import ois
-from astropy.io import fits                           #sfft specific
+#from astropy.io import fits                           #sfft specific
 from astropy.io.fits import CompImageHDU
 from . import _cli as cli
 from .combine import combine
-import os                                             #sfft specific
-from sfft.EasyCrowdedPacket import Easy_CrowdedPacket #sfft specific
-from sfft.CustomizedPacket import Customized_Packet   #sfft specific
-from sfft.EasySparsePacket import Easy_SparsePacket   #sfft specific
+#import os                                             #sfft specific
+#from sfft.EasyCrowdedPacket import Easy_CrowdedPacket #sfft specific
+#from sfft.CustomizedPacket import Customized_Packet   #sfft specific
+#from sfft.EasySparsePacket import Easy_SparsePacket   #sfft specific
 import time
 import numpy as np                                           #sfft specific
 import sys
@@ -119,14 +119,25 @@ def subtract(hduls, name="ALGN", method='sfft', bpm = "bpm", kerpolyorder = 1, b
         template = combine(hduls, name)
         imagesize = hduls[0][name].data.shape
         shape = imagesize[0],imagesize[1],len(hduls)
+        init_start = time.perf_counter()
         try:
-            opt_image = ois.optimal_system(image=hduls[0][name].data, refimage=template["PRIMARY"].data, method='Bramich',kernelshape = (kernelsize,kernelsize))[1]
+            run = ois.optimal_system(image=hduls[0][name].data, refimage=template["PRIMARY"].data, input = 0, method='Bramich',kernelshape = (kernelsize,kernelsize))
+            m = np.array(run[4])
+            c = np.array(run[5])
         except ValueError:
-            opt_image = ois.optimal_system(image=hduls[0][name].data.byteswap().newbyteorder(), refimage=template["PRIMARY"].data.byteswap().newbyteorder(), method='Bramich', kernelshape = (kernelsize, kernelsize))[1]
+            run = ois.optimal_system(image = hduls[0][name].data, refimage = template["PRIMARY"].data, input = 0, method = "Bramich", kernelshape = (kernelsize,kernelsize))
+            m = np.array(run[4])
+            c = np.array(run[5])
+        init_end = time.perf_counter()
+        start = time.perf_counter()
         for i,hdu in enumerate(hduls):
-            diff = hdu[name].data - opt_image
+            start_ind = time.perf_counter()
+            diff = ois.optimal_system(image = hdu[name].data, refimage = template["PRIMARY"].data, input = (m,c), method = 'Bramich', kernelshape = (kernelsize,kernelsize))[0]
             hdu.insert(1,CompImageHDU(data = diff, header =  hdu[name].header, name = "SUB"))
             outputs.append(hdu)
+            end_ind = time.perf_counter()
+        end = time.perf_counter()
+        print('Time for {} subtractions took {} seconds total meaning {} seconds per image and an extra {} seconds for initialization'.format(len(hduls),end-start,(end-start)/len(hduls), init_end - init_start))
 
     elif method == "numpy":
         print("Method = Numpy")
@@ -141,7 +152,7 @@ def subtract(hduls, name="ALGN", method='sfft', bpm = "bpm", kerpolyorder = 1, b
 
 @cli.cli.command("subtract")
 @click.option("-n", "--name", default="ALGN", help="The HDU to be aligned.")
-@click.option('-o', '--kernelsize', default = 11, help = 'Define Kernel Size for Bramich')
+@click.option('-o', '--kernelsize', default = 11, help = 'Define Kernel Size for Bramich', type = int)
 @click.option("-m", "--method", default= "sfft", help="The subtraction method to use; ois or numpy (straight subtraction) or sfft (GPU accelerated).")
 @click.option("-b", "--bpm", default= "bpm", help="The HDU of the bad pixel mask. Used in SFFT subtraction.")
 @click.option("-k", "--kerpolyorder", default= 1, help= "Polynomial order of the kernel. SFFT only. Default 1.", type = int)
