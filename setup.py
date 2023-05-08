@@ -24,13 +24,9 @@ setup(
     py_modules=["sdi"],
     # packages=find_packages(include=["openfits"]),
     include_package_data=True,
-    install_requires=["cupy-cuda11x", "click", "astropy", "photutils", "ois", "astroalign", "astroquery", "scikit-learn"],
+    install_requires=["cupy-cuda11x", "click", "astropy", "photutils", "astroalign", "astroquery", "scikit-learn","numpy==1.23.5","numba==0.53.1"],
     entry_points="""
         [console_scripts]
         sdi=sdi._cli:cli
     """,
 )
-subprocess.run(sys.executable + " -m pip install numpy==1.23.5", shell=True)
-subprocess.run(sys.executable + " -m pip install numba==0.53.1", shell=True)
-name = str(sys.executable)
-subprocess.run("cp ./sdi_pipeline/sdi/ois_cp.py ./lib/"+name+"/site-packages/ois.py", shell=True)
