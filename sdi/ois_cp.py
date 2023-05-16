@@ -38,48 +38,32 @@ def function_to_stack(input):
 
 @cuda.jit
 def convolve_kernel(result, kernel, image):
-    # expects a 2D grid and 2D blocks,
-    # a kernel with odd numbers of rows and columns, (-1-) 
-    # a grayscale image
-    
-    # (-2-) 2D coordinates of the current thread:
     i, j = cuda.grid(2) 
     
-    # (-3-) if the thread coordinates are outside of the image, we ignore the thread:
     image_rows, image_cols = image.shape
     if (i >= image_rows) or (j >= image_cols): 
         return
     
-    # To compute the result at coordinates (i, j), we need to use delta_rows rows of the image 
-    # before and after the i_th row, 
-    # as well as delta_cols columns of the image before and after the j_th column:
     delta_rows = kernel.shape[0] // 2 
     delta_cols = kernel.shape[1] // 2
     
-    # The result at coordinates (i, j) is equal to 
-    # sum_{k, l} kernel[k, l] * image[i - k + delta_rows, j - l + delta_cols]
-    # with k and l going through the whole kernel array:
     s = 0
     for k in range(kernel.shape[0]):
         for l in range(kernel.shape[1]):
             i_k = i - k + delta_rows
             j_l = j - l + delta_cols
-            # (-4-) Check if (i_k, j_k) coordinates are inside the image: 
             if (i_k >= 0) and (i_k < image_rows) and (j_l >= 0) and (j_l < image_cols):  
                 s += kernel[k, l] * image[i_k, j_l]
     result[i, j] = s
 
 def convolve2d_cuda(image, kernel):
-    # Create output array and allocate memory on GPU
     output = np.empty_like(image)
     kernel_shape = kernel.shape
     krows = kernel_shape[0]
     kcols = kernel_shape[1]
     kernel = kernel.astype(np.float32) 
-    # Define block and grid dimensions
     blockdim = (32,32) #setting a maximum of 1024 threads per block (cuda limitations)
     griddim = (image.shape[0] // blockdim[0] + 1, image.shape[1] // blockdim[1] + 1)
-    # Launch kernel on GPU
     convolve_kernel[griddim, blockdim](output, kernel, image)
     return output
 
@@ -356,11 +340,6 @@ class BramichStrategy(SubtractionStrategy):
                     min_r_ref:max_r_ref, min_c_ref:max_c_ref
                 ]
                 c.extend([cij])
-        # This is more pythonic but much slower (50 times slower)
-        # canonBasis = np.identity(kw*kh).reshape(kh*kw,kh,kw)
-        # c.extend([signal.convolve2d(refimage, kij, mode='same')
-        #                 for kij in canonBasis])
-        # canonBasis = None
         self.c = c
         return self.c
 
@@ -386,14 +365,16 @@ class BramichStrategy(SubtractionStrategy):
             stream = cp.cuda.Stream()
             with stream:
                 c_gpu = cp.array(c)
-                img_gpu = cp.array(self.image.flatten())
                 c_m = cp.array(c_m)
+                img_gpu = cp.array(self.image.flatten())
             m = cp.matmul(c_m,c_m.T)
             m = m[:n_c,:n_c]
-            m = cp.asnumpy(m)
             del c_m
+            c_gpu = cp.stack(c_gpu)
+            c_gpu = c_gpu.reshape(c_gpu.shape[0],-1)
             self.m = m
-        return img_gpu, c, self.m
+            self.c = c_gpu
+        return img_gpu, c_gpu, self.m
     
     def call_m(self):
         return self.m
@@ -405,21 +386,47 @@ class BramichStrategy(SubtractionStrategy):
         if self.coeffs is not None:
             return self.coeffs
         if self.m is None:
-            img_gpu, c, m = self.get_m()
+            img_gpu, a, m = self.get_m()
         else:
+            img_gpu = cp.array(self.image.flatten())
             m = self.m
-            c = self.c
-        c = np.stack(c)
-        a = c.reshape(c.shape[0],-1)
-        b = cp.dot(a,self.image.flatten())
+            a = self.c
+        b = cp.dot(a,img_gpu)
         if self.badpixmask is not None:
             for j, cj in enumerate(c):
                 for i in range(j, n_c):
                     m[j, i] = (c[i] * cj)[~self.badpixmask].sum()
                     m[i, j] = m[j, i]
                 b[j] = (self.image * cj)[~self.badpixmask].sum()
-        self.coeffs = np.linalg.solve(m, b)
+        self.coeffs = cp.linalg.solve(m, b)
         return self.coeffs
+
+    # def get_coeffs(self):
+    #     if self.coeffs is not None:
+    #         return self.coeffs
+    #     c = self.get_cmatrices()
+    #     if self.bkgdegree is not None:
+    #         c_bkg = self.get_cmatrices_background()
+    #         c.extend(c_bkg)
+
+    #     n_c = len(c)
+    #     m = np.zeros((n_c, n_c))
+    #     b = np.zeros(n_c)
+    #     if self.badpixmask is None:
+    #         for j, cj in enumerate(c):
+    #             cj = np.asarray(cj, order="C")
+    #             for i in range(j, n_c):
+    #                 m[j, i] = np.tensordot(cj, np.asarray(c[i], order="C"))
+    #                 m[i, j] = m[j, i]
+    #             b[j] = np.vdot(self.image, cj.flatten())
+    #     else:
+    #         for j, cj in enumerate(c):
+    #             for i in range(j, n_c):
+    #                 m[j, i] = (c[i] * cj)[~self.badpixmask].sum()
+    #                 m[i, j] = m[j, i]
+    #             b[j] = (self.image * cj)[~self.badpixmask].sum()
+    #     self.coeffs = np.linalg.solve(m, b)
+    #     return self.coeffs
 
 def optimal_system(
     image,
