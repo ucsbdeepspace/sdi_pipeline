@@ -118,24 +118,24 @@ def subtract(hduls, name="ALGN", method='sfft', bpm = "bpm", kerpolyorder = 1, b
         print("Method = OIS")
         template = combine(hduls, name)
         imagesize = hduls[0][name].data.shape
-        shape = imagesize[0],imagesize[1],len(hduls)
         init_start = time.perf_counter()
         try:
             run = ois.optimal_system(image=hduls[0][name].data, refimage=template["PRIMARY"].data, input = 0, method='Bramich',kernelshape = (kernelsize,kernelsize))
-            m = np.array(run[4])
-            c = np.array(run[5])
+            m = run[4]
+            c = run[5]
         except ValueError:
             run = ois.optimal_system(image = hduls[0][name].data, refimage = template["PRIMARY"].data, input = 0, method = "Bramich", kernelshape = (kernelsize,kernelsize))
-            m = np.array(run[4])
-            c = np.array(run[5])
+            m = run[4]
+            c = run[5]
         init_end = time.perf_counter()
         start = time.perf_counter()
         for i,hdu in enumerate(hduls):
             start_ind = time.perf_counter()
-            diff = ois.optimal_system(image = hdu[name].data, refimage = template["PRIMARY"].data, input = (m,c), method = 'Bramich', kernelshape = (kernelsize,kernelsize))[0]
+            diff = ois.optimal_system(image = hduls[i][name].data, refimage = template["PRIMARY"].data, input = (m,c), method = 'Bramich', kernelshape = (kernelsize,kernelsize))[0]
             hdu.insert(1,CompImageHDU(data = diff, header =  hdu[name].header, name = "SUB"))
             outputs.append(hdu)
             end_ind = time.perf_counter()
+            print('{} took {} seconds to run'.format(i, end_ind - start_ind))
         end = time.perf_counter()
         print('Time for {} subtractions took {} seconds total meaning {} seconds per image and an extra {} seconds for initialization'.format(len(hduls),end-start,(end-start)/len(hduls), init_end - init_start))
 
