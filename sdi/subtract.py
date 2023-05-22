@@ -1,13 +1,13 @@
 import click
 import ois
-#from astropy.io import fits                           #sfft specific
+from astropy.io import fits                           #sfft specific
 from astropy.io.fits import CompImageHDU
 from . import _cli as cli
 from .combine import combine
-#import os                                             #sfft specific
-#from sfft.EasyCrowdedPacket import Easy_CrowdedPacket #sfft specific
-#from sfft.CustomizedPacket import Customized_Packet   #sfft specific
-#from sfft.EasySparsePacket import Easy_SparsePacket   #sfft specific
+import os                                             #sfft specific
+from sfft.EasyCrowdedPacket import Easy_CrowdedPacket #sfft specific
+from sfft.CustomizedPacket import Customized_Packet   #sfft specific
+from sfft.EasySparsePacket import Easy_SparsePacket   #sfft specific
 import time
 import numpy as np                                           #sfft specific
 import sys
@@ -171,4 +171,4 @@ def subtract_cmd(hduls, name="ALGN", method="sfft", bpm = "bpm", kerpolyorder = 
         KerPolyOrder -- Polynomial order of the kernel. SFFT only. Default 1.\n
         BGPolyOrder -- Polynomial order of the background. SFFT only. Default 1.\n
     """
-    return subtract(hduls, name, method, bpm, kerpolyorder, bgpolyorder,kernelsize)
+    return subtract(hduls, name, method, bpm, kerpolyorder, bgpolyorder, kernelsize)

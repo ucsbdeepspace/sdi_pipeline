@@ -69,7 +69,7 @@ def convolve2d_cuda(image, kernel):
 
 __all__ = [
     "EvenSideKernelError",
-    #"convolve2d_adaptive",
+    "convolve2d_adaptive",
     "eval_adpative_kernel",
     "optimal_system",
 ]
@@ -401,32 +401,93 @@ class BramichStrategy(SubtractionStrategy):
         self.coeffs = cp.linalg.solve(m, b)
         return self.coeffs
 
-    # def get_coeffs(self):
-    #     if self.coeffs is not None:
-    #         return self.coeffs
-    #     c = self.get_cmatrices()
-    #     if self.bkgdegree is not None:
-    #         c_bkg = self.get_cmatrices_background()
-    #         c.extend(c_bkg)
+class AdaptiveBramichStrategy(SubtractionStrategy):
+    def __init__(self, image, refimage, kernelshape, bkgdegree, poly_degree=2):
+        self.poly_deg = poly_degree
+        self.poly_dof = (poly_degree + 1) * (poly_degree + 2) // 2
+        self.k_side = kernelshape[0]
 
-    #     n_c = len(c)
-    #     m = np.zeros((n_c, n_c))
-    #     b = np.zeros(n_c)
-    #     if self.badpixmask is None:
-    #         for j, cj in enumerate(c):
-    #             cj = np.asarray(cj, order="C")
-    #             for i in range(j, n_c):
-    #                 m[j, i] = np.tensordot(cj, np.asarray(c[i], order="C"))
-    #                 m[i, j] = m[j, i]
-    #             b[j] = np.vdot(self.image, cj.flatten())
-    #     else:
-    #         for j, cj in enumerate(c):
-    #             for i in range(j, n_c):
-    #                 m[j, i] = (c[i] * cj)[~self.badpixmask].sum()
-    #                 m[i, j] = m[j, i]
-    #             b[j] = (self.image * cj)[~self.badpixmask].sum()
-    #     self.coeffs = np.linalg.solve(m, b)
-    #     return self.coeffs
+        super(AdaptiveBramichStrategy, self).__init__(
+            image, refimage, kernelshape, bkgdegree
+        )
+
+    def get_optimal_image(self):
+        # AdaptiveBramich has to override this function because it uses a
+        # special type of convolution for optimal_image
+        if self.optimal_image is not None:
+            return self.optimal_image
+        import varconv
+
+        opt_image = varconv.convolve2d_adaptive(
+            self.refimage, self.get_kernel(), self.poly_deg
+        )
+        if self.bkgdegree is not None:
+            opt_image += self.get_background()
+        if self.badpixmask is not None:
+            self.optimal_image = np.ma.array(opt_image, mask=self.badpixmask)
+        else:
+            self.optimal_image = opt_image
+        return self.optimal_image
+
+    def get_kernel(self):
+        if self.kernel is not None:
+            return self.kernel
+        poly_dof = (self.poly_deg + 1) * (self.poly_deg + 2) // 2
+        k_dof = self.k_side * self.k_side * poly_dof
+        ks = self.k_side
+        coeffs = self.get_coeffs()
+        self.kernel = coeffs[:k_dof].reshape((ks, ks, self.poly_dof))
+        return self.kernel
+
+    def get_coeffs(self):
+        if self.coeffs is not None:
+            return self.coeffs
+        import varconv
+
+        m, b = varconv.gen_matrix_system(
+            self.image,
+            self.refimage,
+            self.badpixmask is not None,
+            self.badpixmask,
+            self.k_side,
+            self.poly_deg,
+            self.bkgdegree or -1,
+        )
+        self.coeffs = np.linalg.solve(m, b)
+        return self.coeffs
+
+
+def convolve2d_adaptive(image, kernel, poly_degree):
+    "Convolve image with the adaptive kernel of `poly_degree` degree."
+    import varconv
+
+    # Check here for dimensions
+    if image.ndim != 2:
+        raise ValueError("Wrong dimensions for image")
+    if kernel.ndim != 3:
+        raise ValueError("Wrong dimensions for kernel")
+
+    conv = varconv.convolve2d_adaptive(image, kernel, poly_degree)
+    return conv
+
+
+def eval_adpative_kernel(kernel, x, y):
+    "Return the adaptive kernel at position (x, y) = (col, row)."
+    if kernel.ndim == 2:
+        return kernel
+
+    kh, kw, dof = kernel.shape
+    # The conversion from degrees of freedom (dof) to the polynomial degree
+    # The last 0.5 is to round to nearest integer
+    deg = int(-1.5 + np.sqrt(1 + 8 * dof) / 2 + 0.5)
+    k_rolled = np.rollaxis(kernel, 2, 0)
+    k_xy = np.zeros((kh, kw))
+    d = 0
+    for powx in range(deg + 1):
+        for powy in range(deg - powx + 1):
+            k_xy += k_rolled[d] * np.power(y, powy) * np.power(x, powx)
+            d += 1
+    return k_xy
 
 def optimal_system(
     image,
@@ -445,7 +506,7 @@ def optimal_system(
 
     DefaultStrategy = BramichStrategy  # noqa
     all_strategies = {
-        #"AdaptiveBramich": AdaptiveBramichStrategy,
+        "AdaptiveBramich": AdaptiveBramichStrategy,
         "Bramich": BramichStrategy,
         "Alard-Lupton": AlardLuptonStrategy,
     }
