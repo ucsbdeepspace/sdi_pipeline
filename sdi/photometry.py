@@ -18,8 +18,10 @@ from regions import CirclePixelRegion, PixCoord
 from photutils import centroids
 from . import _cli as cli
 
-def photometry(files_dir, out_dir = "None", filter = 'r', plot_mode ='a'): #barebones, can add more stuff later
+def photometry(files_dir, out_dir , filter , plot_mode, median_divide): #barebones, can add more stuff later
     files = sorted(glob.glob(files_dir + '/*'))  # filepath, this is a directory containing directories.
+    outstr= out_dir
+    print(outstr)
     data = []
     for i, dir in enumerate(files):
         set = dict(images=[], header=None, template=None, refs=None, WCS=None,run=i)  # dictionary object used to sort input files
@@ -164,9 +166,15 @@ def photometry(files_dir, out_dir = "None", filter = 'r', plot_mode ='a'): #bare
         for source in sources:
             vals = []
             for val in source['instrumental_mags_{}'.format(set['run'])]:
-                cal = np.float64(val * p1[0] + p1[1])
-                vals.append(cal)
+                if abs(1 - p1[0]) < abs(1 - p0[0]):
+                    cal = np.float64(val * p1[0] + p1[1])
+                    vals.append(cal)
+                else:
+                    cal = np.float64(val * p0[0] + p0[1])
+                    vals.append(cal)
             source['calibrated_mags_{}'.format(set['run'])] = vals  # probably a cleaner way to do this part but was having issue where calibrated magnitudes were being added to dict as individual arrays
+
+
 
     for set in data: #this part is entirely optional, need to nest in if statement.
         print(set['run'])
@@ -198,6 +206,8 @@ def photometry(files_dir, out_dir = "None", filter = 'r', plot_mode ='a'): #bare
         #add dynamic plot saving back in.
         plt.show()
 
+
+    ######
     runs = np.arange(0, len(data))
     colors = []
     for run in runs:  # sets up color scheme for plotting.
@@ -208,8 +218,24 @@ def photometry(files_dir, out_dir = "None", filter = 'r', plot_mode ='a'): #bare
         print(i)
     c = np.array(colors)
     colors_options = np.array(['#3B5BA5', '#E87A5D', '#F3B941', '#f00a42', '#6F9BA4', '#9D9EA2', "#C5E86C", "#B4B5DF"])  # HEXIDECIMAL COLORS need to add a ton of colors to this even if they don't all get used. Could set it up do randomly generate hex colors but that will be inconsistent and kinda look like shit.
-
-    mode = 0
+    #######
+    mode = plot_mode
+    med_dev = median_divide
+    if med_dev == True:  # only run this for single night observing runs. Make part of each night?
+        median_curves = []
+        for i, run in enumerate(runs):
+            median_mags = []
+            for source in sources:
+                if source['border'] == False:
+                    median_mags.append([source[f'calibrated_mags_{i}']])
+            median_curve = np.median(median_mags, axis=0) / np.median(median_mags)  # normalized median light curve
+            median_curves.append(median_curve)
+        curve = np.concatenate(median_curves)
+    med_curve_final = np.concatenate(curve)
+    p = np.arange(0, len(med_curve_final))
+    plt.scatter(p, med_curve_final)
+    plt.show()
+    #######
     transient_candidates = []
     # plots light curves.
     for source in sources:
@@ -263,6 +289,7 @@ def photometry(files_dir, out_dir = "None", filter = 'r', plot_mode ='a'): #bare
         plt.legend()
         #dynamic plot saving
         plt.gca().invert_yaxis()
+        #print("Plotted curve")
         plt.show()
 
         plt.title("Source Number: {}, Position: {}, {}".format(source['source_id'], "%.2f" % x, "%.2f" % y))
@@ -275,17 +302,20 @@ def photometry(files_dir, out_dir = "None", filter = 'r', plot_mode ='a'): #bare
         ax.add_patch(circle2)
         plt.imshow(data[0]['template'], cmap='gray', norm=LogNorm(vmin=1, vmax=200), origin='lower')
         #dynamic plot saving here
+        #print("plotted location")
         plt.show()
+    ######
 
 @cli.cli.command("photometry")
 @click.option('-d', '--files_dir', type=str, help="Specify path to directory of fits files.")
-#@click.option('-D', "--out_dir", type=str, help = "Specify path to directory for output files", required = False)
-#@click.option('-f', "--filter", type = str, default = 'r', help = "Specify imaging filter for data set using SDSS color scheme", required = True)
-#@click.option('-a', "--plot_mode", type=str, default = 'a' ,help ="Specify plotting mode", required = False)
-@cli.operator
+@click.option('-D', "--out_dir", type=str, help = "Specify path to directory for output files", required = False)
+@click.option('-f', "--filter", type = str, default = 'r', help = "Specify imaging filter for data set using SDSS color scheme", required = True)
+@click.option('-p', "--plot_mode", type=int, default = 0 ,help ="Specify plotting mode", required = False)
+@click.option('-m', "--median_divide", type=bool, default = True, help ="Divides by a median light curve to reduce systemic trends from light curves", required = False)
+#@cli.operator
 
-def photometry_cmd(files_dir, out_dir = "None", filter = 'r', plot_mode ='a'):
+def photometry_cmd(files_dir, out_dir = "None", filter = 'r', plot_mode =0, median_divide = True):
     """
     does the photometry
     """
-    return photometry(files_dir, out_dir, filter, plot_mode)
+    return photometry(files_dir, out_dir, filter, plot_mode, median_divide)
