@@ -19,17 +19,17 @@
     email: <martinberoiz@gmail.com>
     University of Texas at San Antonio
 """
-
+# CUDA-modified-ois written by: Dharv Patel (dharv.patel@gmail.com)
 
 __version__ = "0.2"
 
 import numpy as np
 from scipy import signal
 from scipy import ndimage
-from numba import cuda
-import cupy as cp
+from numba import cuda #used for CUDA acceleration
+import cupy as cp #used to replace numpy with CUDA-accelerated functions
 import sys
-import numba as nb
+import numba as nb#used for CUDA acceleration
 
 @nb.jit(forceobj=True)
 def function_to_stack(input):
@@ -37,7 +37,7 @@ def function_to_stack(input):
     return a
 
 @cuda.jit
-def convolve_kernel(result, kernel, image):
+def convolve_kernel(result, kernel, image): #Using this instead scipy-convolution(Significantly faster convolution for larger kernel sizes)
     i, j = cuda.grid(2) 
     
     image_rows, image_cols = image.shape
@@ -48,7 +48,7 @@ def convolve_kernel(result, kernel, image):
     delta_cols = kernel.shape[1] // 2
     
     s = 0
-    for k in range(kernel.shape[0]):
+    for k in range(kernel.shape[0]): #Convolution loop
         for l in range(kernel.shape[1]):
             i_k = i - k + delta_rows
             j_l = j - l + delta_cols
@@ -56,7 +56,7 @@ def convolve_kernel(result, kernel, image):
                 s += kernel[k, l] * image[i_k, j_l]
     result[i, j] = s
 
-def convolve2d_cuda(image, kernel):
+def convolve2d_cuda(image, kernel): #function used to launch GPU convolution
     output = np.empty_like(image)
     kernel_shape = kernel.shape
     krows = kernel_shape[0]
@@ -320,7 +320,7 @@ class AlardLuptonStrategy(SubtractionStrategy):
         return self.coeffs
 
 
-class BramichStrategy(SubtractionStrategy):
+class BramichStrategy(SubtractionStrategy): #A lot of the original code uses random variable names like c,m,a,b,m and I didn't have better names for these so re-used them.
     def get_cmatrices(self):
         kh, kw = self.k_shape
         h, w = self.refimage.shape
