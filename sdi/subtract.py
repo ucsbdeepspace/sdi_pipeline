@@ -5,9 +5,9 @@ from astropy.io.fits import CompImageHDU
 from . import _cli as cli
 from .combine import combine
 import os                                             #sfft specific
-from sfft.EasyCrowdedPacket import Easy_CrowdedPacket #sfft specific
-from sfft.CustomizedPacket import Customized_Packet   #sfft specific
-from sfft.EasySparsePacket import Easy_SparsePacket   #sfft specific
+#from sfft.EasyCrowdedPacket import Easy_CrowdedPacket #sfft specific
+#from sfft.CustomizedPacket import Customized_Packet   #sfft specific
+#from sfft.EasySparsePacket import Easy_SparsePacket   #sfft specific
 import time
 import numpy as np                                           #sfft specific
 import sys
