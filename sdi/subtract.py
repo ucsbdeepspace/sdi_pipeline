@@ -1,5 +1,7 @@
 import click
+import ois_cp
 import ois
+from numba import cuda
 from astropy.io import fits                           #sfft specific
 from astropy.io.fits import CompImageHDU
 from . import _cli as cli
@@ -114,17 +116,16 @@ def subtract(hduls, name="ALGN", method='sfft', bpm = "bpm", kerpolyorder = 1, b
         else:
             print("temp_ref.fits does not exist")
         print("Removal Complete")
-    elif method == "ois":
-        print("Method = OIS")
+    elif method == "ois" and cuda.is_available():
+        print("Method = OIS GPU")
         template = combine(hduls, name)
-        imagesize = hduls[0][name].data.shape
         init_start = time.perf_counter()
         try:
-            run = ois.optimal_system(image=hduls[0][name].data, refimage=template["PRIMARY"].data, input = 0, method='Bramich',kernelshape = (kernelsize,kernelsize))
+            run = ois_cp.optimal_system(image=hduls[0][name].data, refimage=template["PRIMARY"].data, input = 0, method='Bramich',kernelshape = (kernelsize,kernelsize))
             m = run[4]
             c = run[5]
         except ValueError:
-            run = ois.optimal_system(image = hduls[0][name].data, refimage = template["PRIMARY"].data, input = 0, method = "Bramich", kernelshape = (kernelsize,kernelsize))
+            run = ois_cp.optimal_system(image = hduls[0][name].data, refimage = template["PRIMARY"].data, input = 0, method = "Bramich", kernelshape = (kernelsize,kernelsize))
             m = run[4]
             c = run[5]
         init_end = time.perf_counter()
@@ -138,7 +139,20 @@ def subtract(hduls, name="ALGN", method='sfft', bpm = "bpm", kerpolyorder = 1, b
             print('{} took {} seconds to run'.format(i, end_ind - start_ind))
         end = time.perf_counter()
         print('Time for {} subtractions took {} seconds total meaning {} seconds per image and an extra {} seconds for initialization'.format(len(hduls),end-start,(end-start)/len(hduls), init_end - init_start))
-
+    elif method == 'ois' and not(cuda.is_available()):
+        print("Method = OIS CPU")
+        template = combine(hduls, name)
+        for i,hdu in enumerate(hduls):
+            start = time.perf_counter()
+            print("Subtracting {} / {} hdul".format(i+1, len(hduls)))
+            try:
+                diff = ois.optimal_system(image=hdu[name].data, refimage=template['PRIMARY'].data, method='AdaptiveBramich')[0]
+            except ValueError:
+                diff = ois.optimal_system(image=hdu[name].data.byteswap().newbyteorder(), refimage=template['PRIMARY'].data.byteswap().newbyteorder(), method='AdaptiveBramich')[0]
+            hdu.insert(1,CompImageHDU(data = diff, header =  hduls[i][name].header, name = "SUB"))
+            outputs.append(hdu)
+            stop = time.perf_counter()
+            print("Time elapsed: {} seconds".format(stop-start))
     elif method == "numpy":
         print("Method = Numpy")
         template = combine(hduls, name)
