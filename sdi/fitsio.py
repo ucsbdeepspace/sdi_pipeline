@@ -36,7 +36,6 @@ def read(directory):
         except:
             pass
         hduls = [fits.open(p) for p in paths]
-    print(len(hduls))
     return hduls
 
 def write(hduls, directory, format_):

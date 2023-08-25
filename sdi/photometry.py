@@ -19,6 +19,29 @@ import multiprocessing as mp
 from multiprocessing import shared_memory
 from . import _cli as cli
 import click
+import os
+from .combine import combine
+from photutils.aperture import CircularAperture, aperture_photometry
+from photutils import background as bck
+from photutils.segmentation import detect_sources,detect_threshold,SourceCatalog
+from photutils import detection
+from astropy.stats import sigma_clipped_stats, SigmaClip
+import time
+
+def photometry_test(hduls):
+    start = time.perf_counter()
+    median_img = combine(hduls,'SUB')
+    median_img = median_img['PRIMARY'].data
+    median_img = median_img.astype(np.float64)
+    threshold = detect_threshold(median_img, nsigma=10.0,background=0.0)
+    segmentedimg = detect_sources(median_img, threshold=threshold,npixels=10)
+    sourcecatalog = SourceCatalog(median_img, segmentedimg)
+    print(' ')
+    end = time.perf_counter()
+    #for source in sourcecatalog:
+    #    print("Source Position: ", source.centroid)
+    print('Sources detected = {}. Time to detect sources = {} seconds'.format(len(sourcecatalog),end-start))
+    return (h for h in hduls)
 
 def photometry(hduls, name, directory):
     os.chdir(directory)
@@ -26,7 +49,7 @@ def photometry(hduls, name, directory):
     template = np.median(data, axis = 0)
     bkg_phot = sep.Background(template)
     extracted_phot = sep.extract(template - bkg_phot.back())
-    w = WCS(hdus[0][1].header)
+    w = WCS(hduls[0][1].header)
     print(len(extracted_phot))
     print(w)
     sources = []
@@ -45,9 +68,9 @@ def photometry(hduls, name, directory):
         else:
             ref = dict(ra = coord, dec = coord, x_coord = x, y_coord = y, x_min = src['xmin'], x_max = src['xmax'], rad = None, g_mag = None, g_mag_err = None, source_id = c, calibrated_mags = [],instrumental_mags = [], inst_mag_errs = []) #sources that are not reference stars simply will not have SDSS magnitudes.
             sources.append(ref)
-    for i, image in enumerate(aligned):
+    for i, image in enumerate(data):
         print(i)
-        N_r = hdus[i][1].header["RDNOISE"] #readout noise
+        N_r = hduls[i][1].header["RDNOISE"] #readout noise
         for source in sources:
             coords = [source['x_coord'], source['y_coord']]
             pcoords = PixCoord(source['x_coord'], source['y_coord'])
@@ -177,4 +200,4 @@ def photometry_cmd(hduls, name='SUB', directory = './'):
     Arguments:\n
         hduls -- list of fits hduls\n
     """
-    return photometry(hduls, name, directory)
+    return photometry_test(hduls)

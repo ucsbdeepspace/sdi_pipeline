@@ -117,7 +117,8 @@ def subtract(hduls, name="ALGN", method='sfft', bpm = "bpm", kerpolyorder = 1, b
             print("temp_ref.fits does not exist")
         print("Removal Complete")
     elif method == "ois" and cuda.is_available():
-        print("Method = OIS GPU")
+        print("\n" + "Method = OIS GPU")
+        start = time.perf_counter()
         template = combine(hduls, name)
         init_start = time.perf_counter()
         try:
@@ -129,16 +130,15 @@ def subtract(hduls, name="ALGN", method='sfft', bpm = "bpm", kerpolyorder = 1, b
             m = run[4]
             c = run[5]
         init_end = time.perf_counter()
-        start = time.perf_counter()
         for i,hdu in enumerate(hduls):
             start_ind = time.perf_counter()
             diff = ois.optimal_system(image = hduls[i][name].data, refimage = template["PRIMARY"].data, input = (m,c), method = 'Bramich', kernelshape = (kernelsize,kernelsize))[0]
             hdu.insert(1,CompImageHDU(data = diff, header =  hdu[name].header, name = "SUB"))
             outputs.append(hdu)
             end_ind = time.perf_counter()
-            print('{} took {} seconds to run'.format(i, end_ind - start_ind))
+            #print('{} took {} seconds to run'.format(i, end_ind - start_ind))
         end = time.perf_counter()
-        print('Time for {} subtractions took {} seconds total meaning {} seconds per image and an extra {} seconds for initialization'.format(len(hduls),end-start,(end-start)/len(hduls), init_end - init_start))
+        print('Time for {} subtractions took {} seconds total meaning {} seconds per image'.format(len(hduls),end-start+init_end-init_start,((end-start)+(init_end - init_start))/len(hduls)))
     elif method == 'ois' and not(cuda.is_available()):
         print("Method = OIS CPU")
         template = combine(hduls, name)
