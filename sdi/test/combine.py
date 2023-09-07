@@ -8,7 +8,7 @@ import unittest
 import click
 from click.testing import CliRunner
 from astropy.io import fits
-import sdi
+import tripp
 
 class TestCombine(unittest.TestCase):
 
@@ -16,8 +16,8 @@ class TestCombine(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.read = [s for s in sdi.read(cls.path)]
-        cls.output = sdi.combine(cls.read)
+        cls.read = [s for s in tripp.read(cls.path)]
+        cls.output = tripp.combine(cls.read)
         true_path = os.path.join(os.path.dirname(__file__), "fixtures/comparativeData/combineData/0.fits")
         cls.true_output = [fits.open(true_path)]
 
@@ -40,7 +40,7 @@ class TestCombine(unittest.TestCase):
  
     def test_click(self):
         runner = CliRunner()
-        result = runner.invoke(sdi._combine_cmd, ['-n', 'name'])
+        result = runner.invoke(tripp._combine_cmd, ['-n', 'name'])
         assert result.exit_code == 0
   
 if __name__ == "__main__":

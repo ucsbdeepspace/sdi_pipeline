@@ -3,7 +3,7 @@ from tkinter import filedialog
 from astropy.io import fits
 import sys
 import os
-from sdi.secid import secid
+from tripp.secid import secid
 
 #Hides the Tk() window
 root = tk.Tk()

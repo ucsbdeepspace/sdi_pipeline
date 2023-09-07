@@ -8,7 +8,7 @@ import unittest
 import click
 from click.testing import CliRunner
 from astropy.io import fits
-import sdi
+import tripp
 import numpy as np
 from skimage.util.dtype import img_as_float
 import glob
@@ -20,7 +20,7 @@ class TestAlign(unittest.TestCase):
         # uses two fits files as align param to decrease runtime
         cls.paths = glob.glob(os.path.join(os.path.dirname(__file__), "fixtures/science/tfn0m414-kb99-20180831-029[0-1]-e91.fits.fz"))
         cls.read = [fits.open(p) for p in cls.paths]
-        cls.output = list(sdi.align(cls.read))
+        cls.output = list(tripp.align(cls.read))
 
         # sorts the known true output to be congruent with the current output
         cls.path_len = len(os.path.join(os.path.dirname(__file__), "fixtures/comparativeData/alignData"))
@@ -50,7 +50,7 @@ class TestAlign(unittest.TestCase):
 
     def test_click(self):
         runner = CliRunner()
-        result = runner.invoke(sdi._align_cmd, ['-n', 'name'])
+        result = runner.invoke(tripp._align_cmd, ['-n', 'name'])
         assert result.exit_code == 0
 
 

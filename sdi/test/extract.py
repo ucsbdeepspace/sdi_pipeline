@@ -8,7 +8,7 @@ import unittest
 import click
 from click.testing import CliRunner
 from astropy.io import fits
-import sdi
+import tripp
 import glob
 
 class TestExtract(unittest.TestCase):
@@ -17,8 +17,8 @@ class TestExtract(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.read = [s for s in sdi.read(cls.path)]
-        cls.output = list(sdi.extract(cls.read))
+        cls.read = [s for s in tripp.read(cls.path)]
+        cls.output = list(tripp.extract(cls.read))
 
         # sorts the known true output to be congruent with the current output
         cls.path_len = len(os.path.join(os.path.dirname(__file__), "fixtures/comparativeData/extractData"))
@@ -46,7 +46,7 @@ class TestExtract(unittest.TestCase):
 
     def test_click(self):
         runner = CliRunner()
-        result = runner.invoke(sdi._extract_cmd, ['-t', 3.0, '-r', 0, '-w', 'XRT', 1])
+        result = runner.invoke(tripp._extract_cmd, ['-t', 3.0, '-r', 0, '-w', 'XRT', 1])
         assert result.exit_code == 0
 
 if __name__ == "__main__":

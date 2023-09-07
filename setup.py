@@ -7,26 +7,26 @@ try:
     import numpy
 except ModuleNotFoundError:
     import sys
-    sys.exit("numpy not found, sdi requires numpy for installation.\n Please try '$pip3 install numpy'.")
+    sys.exit("numpy not found, tripp requires numpy for installation.\n Please try '$pip3 install numpy'.")
 
 try:
     import setuptools_rust
 except ModuleNotFoundError:
     import sys
-    sys.exit("setuptools_rust not found, sdi requires setuptools_rust for installation.\n Please try '$pip3 install setuptools_rust'.")
+    sys.exit("setuptools_rust not found, tripp requires setuptools_rust for installation.\n Please try '$pip3 install setuptools_rust'.")
 '''
 
 subprocess.run(sys.executable + " -m pip install --upgrade pip setuptools==56.0.0 setuptools_rust numpy", shell=True)
 
 setup(
-    name="sdi-cli",
+    name="tripp-cli",
     version="0.99",
-    py_modules=["sdi"],
+    py_modules=["tripp"],
     # packages=find_packages(include=["openfits"]),
     include_package_data=True,
     install_requires=["click", "astropy", "photutils", "ois", "astroalign", "astroquery", "scikit-learn"],
     entry_points="""
         [console_scripts]
-        sdi=sdi._cli:cli
+        tripp=tripp._cli:cli
     """,
 )

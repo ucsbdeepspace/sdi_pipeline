@@ -1,12 +1,12 @@
-from sdi.sources import db
-import sdi
+from tripp.sources import db
+import tripp
 from glob import glob
 from astropy.io import fits
 import numpy as np
 from vis import image
 from loaddb import load_im
 import sys
-from sdi.sources.record import record, cluster
+from tripp.sources.record import record, cluster
 
 ims = sys.argv[1:]
 #fn = glob("smalldata/*.fz")

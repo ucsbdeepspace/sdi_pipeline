@@ -35,13 +35,13 @@ def subtract(hduls, name="ALGN", method = "sfft", bpm = "bpm", kerpolyorder = 1,
         image_FWHMs = []
         venv_file_path = sys.prefix
         for i, hdu in enumerate(hduls): 
-            temp_filename = venv_file_path + "/sdi_pipeline/sdi/temp_image{}.fits".format(i) #Write the science hduls into temporary fits files
+            temp_filename = venv_file_path + "/tripp/tripp/temp_image{}.fits".format(i) #Write the science hduls into temporary fits files
             temp_data = hdu[name].data
             primary = fits.PrimaryHDU(temp_data)
             primary.writeto(temp_filename, overwrite = True)
             temp_image_fits_filenames.append(temp_filename)
             
-            temp_bpm_filename = venv_file_path + "/sdi_pipeline/sdi/temp_image{}_bpm.fits".format(i) #Write the bad pixel masks into temporary fits files
+            temp_bpm_filename = venv_file_path + "/tripp/tripp/temp_image{}_bpm.fits".format(i) #Write the bad pixel masks into temporary fits files
             temp_bpm = hdu[bpm].data
             primary_bpm = fits.PrimaryHDU(temp_bpm)
             primary_bpm.writeto(temp_bpm_filename, overwrite = True)

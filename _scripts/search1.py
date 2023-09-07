@@ -5,7 +5,7 @@ import numpy as np
 from vis import image
 from loaddb import load_im
 import sys
-from sdi.sources.record import record, cluster
+from tripp.sources.record import record, cluster
 
 ims = sys.argv[1:]
 #fn = glob("smalldata/*.fz")
