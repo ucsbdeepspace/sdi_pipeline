@@ -26,6 +26,11 @@ import datetime
 from . import _cli as cli
 import faulthandler
 
+def dim(a): #funciton to get dimension of a python list
+    if not type(a) == list:
+        return []
+    return [len(a)] + dim(a[0])
+
 def multiprocessed_snr(read_ext, hduls, index, shm_name):
     hdul = hduls[index]
     try:
@@ -93,6 +98,16 @@ def align(hduls, read_ext="SCI", write_ext="ALGN", ref=None):
     """
 
     faulthandler.enable()
+    if (len(dim(hduls)) == 2):
+        number_of_nights = dim(hduls)[0]
+        images_per_night = []
+        hduls_merged = []
+        for i in range(number_of_nights):
+            images_per_night.append(len(hduls[i]))
+            for j in range(len(hduls[i])):
+                hduls_merged.append(hduls[i][j])
+        hduls = hduls_merged
+
     snr_arr = np.zeros(len(hduls), dtype = np.float64)
     shm_snr = shared_memory.SharedMemory(create = True, size = snr_arr.nbytes)
     arr = np.ndarray(snr_arr.shape, dtype = snr_arr.dtype, buffer=shm_snr.buf)
@@ -164,7 +179,12 @@ def align(hduls, read_ext="SCI", write_ext="ALGN", ref=None):
     shm_snr.close()
     shm_snr.unlink()
     shm_hdul_data.unlink()
-    return hduls
+    hduls_separated = []
+    starting_index = 0
+    for i in images_per_night:
+        hduls_separated.append(hduls[starting_index:starting_index+i])
+        starting_index += i
+    return hduls_separated
 
 
 @cli.cli.command("align")

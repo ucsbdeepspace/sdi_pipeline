@@ -5,6 +5,7 @@ from numba import cuda
 from astropy.io import fits                           #sfft specific
 from astropy.io.fits import CompImageHDU
 from . import _cli as cli
+import copy
 from .combine import combine
 import os                                             #sfft specific
 #from sfft.EasyCrowdedPacket import Easy_CrowdedPacket #sfft specific
@@ -13,6 +14,11 @@ import os                                             #sfft specific
 import time
 import numpy as np                                           #sfft specific
 import sys
+
+def dim(a): #funciton to get dimension of a python list
+    if not type(a) == list:
+        return []
+    return [len(a)] + dim(a[0])
 
 def subtract(hduls, name="ALGN", method='sfft', bpm = "bpm", kerpolyorder = 1, bgpolyorder = 1,kernelsize=11):
     """
@@ -25,8 +31,21 @@ def subtract(hduls, name="ALGN", method='sfft', bpm = "bpm", kerpolyorder = 1, b
         KerPolyOrder -- Polynomial order of the kernel. SFFT only. Default 1.
         BGPolyOrder -- Polynomial order of the background. SFFT only. Default 1.
     """
-    hduls = [h for h in hduls]
+    bool = False
+    if (len(dim(hduls)) == 2):
+        number_of_nights = dim(hduls)[0]
+        images_per_night = []
+        hduls_merged = []
+        for i in range(number_of_nights):
+            images_per_night.append(len(hduls[i]))
+            for j in range(len(hduls[i])):
+                hduls_merged.append(hduls[i][j])
+        hduls = hduls_merged
+        bool = True
+    hduls = copy.deepcopy(hduls)
     outputs = []
+    start_main = time.perf_counter()
+    ind_times = np.zeros(len(hduls))
     if method == "sfft":
         print(" ")
         print("Writing Temporary Fits Files")
@@ -116,9 +135,8 @@ def subtract(hduls, name="ALGN", method='sfft', bpm = "bpm", kerpolyorder = 1, b
         else:
             print("temp_ref.fits does not exist")
         print("Removal Complete")
-    elif method == "ois" and cuda.is_available():
+    elif method == "oisg":
         print("\n" + "Method = OIS GPU")
-        start = time.perf_counter()
         template = combine(hduls, name)
         init_start = time.perf_counter()
         try:
@@ -130,39 +148,53 @@ def subtract(hduls, name="ALGN", method='sfft', bpm = "bpm", kerpolyorder = 1, b
             m = run[4]
             c = run[5]
         init_end = time.perf_counter()
+        init_time = init_end - init_start
+        init_penalty = init_time/len(hduls) 
         for i,hdu in enumerate(hduls):
             start_ind = time.perf_counter()
-            diff = ois.optimal_system(image = hduls[i][name].data, refimage = template["PRIMARY"].data, input = (m,c), method = 'Bramich', kernelshape = (kernelsize,kernelsize))[0]
-            hdu.insert(1,CompImageHDU(data = diff, header =  hdu[name].header, name = "SUB"))
+            diff = ois_cp.optimal_system(image = hduls[i][name].data, refimage = template["PRIMARY"].data, input = (m,c), method = 'Bramich', kernelshape = (kernelsize,kernelsize))[0]
+            hdu.insert(1,CompImageHDU(data = diff, header =  hdu[name].header, name = "SUB"))           
             outputs.append(hdu)
             end_ind = time.perf_counter()
+            ind_times[i] = end_ind - start_ind + init_penalty
             #print('{} took {} seconds to run'.format(i, end_ind - start_ind))
-        end = time.perf_counter()
-        print('Time for {} subtractions took {} seconds total meaning {} seconds per image'.format(len(hduls),end-start+init_end-init_start,((end-start)+(init_end - init_start))/len(hduls)))
-    elif method == 'ois' and not(cuda.is_available()):
-        print("Method = OIS CPU")
+    elif method == 'oisc':
+        print("\n" + "Method = OIS CPU")
         template = combine(hduls, name)
         for i,hdu in enumerate(hduls):
-            start = time.perf_counter()
-            print("Subtracting {} / {} hdul".format(i+1, len(hduls)))
+            begin = time.perf_counter()
             try:
-                diff = ois.optimal_system(image=hdu[name].data, refimage=template['PRIMARY'].data, method='AdaptiveBramich')[0]
+                diff = ois.optimal_system(image=hdu[name].data, refimage=template['PRIMARY'].data, method='Bramich')[0]
             except ValueError:
-                diff = ois.optimal_system(image=hdu[name].data.byteswap().newbyteorder(), refimage=template['PRIMARY'].data.byteswap().newbyteorder(), method='AdaptiveBramich')[0]
+                diff = ois.optimal_system(image=hdu[name].data.byteswap().newbyteorder(), refimage=template['PRIMARY'].data.byteswap().newbyteorder(), method='Bramich')[0]
             hdu.insert(1,CompImageHDU(data = diff, header =  hduls[i][name].header, name = "SUB"))
             outputs.append(hdu)
             stop = time.perf_counter()
-            print("Time elapsed: {} seconds".format(stop-start))
+            ind_times[i] = (stop-begin)
     elif method == "numpy":
-        print("Method = Numpy")
+        print("\n"+"Method = Numpy")
         template = combine(hduls, name)
         for i,hdu in enumerate(hduls):
+            begin = time.perf_counter()
             diff = template["PRIMARY"].data - hdu[name].data
             hdu.insert(1,CompImageHDU(data = diff, header =  hduls[i][name].header, name = "SUB"))
             outputs.append(hdu)
+            end = time.perf_counter()
+            ind_times[i] = end - begin
     else:
         raise ValueError(f"method {method} unknown!")
-    return (hdul for hdul in outputs)
+    end = time.perf_counter()
+    print('Time for {} subtractions took {} seconds total meaning {} seconds per image with a standard deviation of: '.format(len(hduls),end-start_main,((end-start_main))/len(hduls)))
+    print(np.std(ind_times))
+
+    if(bool):
+        hduls_separated = []
+        starting_index = 0
+        for i in images_per_night:
+            hduls_separated.append(outputs[starting_index:starting_index+i])
+            starting_index += i
+        outputs = hduls_separated 
+    return outputs
 
 @cli.cli.command("subtract")
 @click.option("-n", "--name", default="ALGN", help="The HDU to be aligned.")
@@ -185,4 +217,4 @@ def subtract_cmd(hduls, name="ALGN", method="sfft", bpm = "bpm", kerpolyorder = 
         KerPolyOrder -- Polynomial order of the kernel. SFFT only. Default 1.\n
         BGPolyOrder -- Polynomial order of the background. SFFT only. Default 1.\n
     """
-    return subtract(hduls, name, method, bpm, kerpolyorder, bgpolyorder, kernelsize)
+    return subtract([hduls for hduls in hduls], name, method, bpm, kerpolyorder, bgpolyorder, kernelsize)

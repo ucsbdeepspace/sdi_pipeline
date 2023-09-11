@@ -26,8 +26,10 @@ def read(directory):
         for i, dir in enumerate(sorted(glob.glob(directory + '/*'))):
             files = sorted(glob.glob(dir + '/*'))  # formatting
             hdus = list([fits.open(a) for a in files])  # opens fits files
-            for i in hdus:
-                hduls.append(i) #adds the fits files to the list with all the other fits files
+            hduls_night = []
+            for j in hdus:
+                hduls_night.append(j) #adds the fits files to the list with all the other fits files
+            hduls.append(hduls_night)
     else:
         paths = glob.glob("{}/*.fits*".format(directory))
         try:
