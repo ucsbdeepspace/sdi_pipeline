@@ -19,13 +19,25 @@ def read(directory):
     """
     Takes a directory containing fits files and returns them as a list
     """
-    paths = glob.glob("{}/*.fits*".format(directory))
-    try:
-        # if file name is numeric, paths will be sorted in ascending order
-        paths = sorted(paths, key = lambda item: int(item[len(directory):len(item)-5]))
-    except:
-        pass
-    hduls = [fits.open(p) for p in paths]
+    it = list(os.scandir(directory))[0] #check if the provided directory is a directory of directories or a directory of fits files
+    if it.is_dir(): #if it has directories in it, then the data will be read using this method which navigates to each sub-directory and open each fits file
+        #print(it.path)
+        hduls = []
+        for i, dir in enumerate(sorted(glob.glob(directory + '/*'))):
+            files = sorted(glob.glob(dir + '/*'))  # formatting
+            hdus = list([fits.open(a) for a in files])  # opens fits files
+            hduls_night = []
+            for j in hdus:
+                hduls_night.append(j) #adds the fits files to the list with all the other fits files
+            hduls.append(hduls_night)
+    else:
+        paths = glob.glob("{}/*.fits*".format(directory))
+        try:
+            # if file name is numeric, paths will be sorted in ascending order
+            paths = sorted(paths, key = lambda item: int(item[len(directory):len(item)-5]))
+        except:
+            pass
+        hduls = [fits.open(p) for p in paths]
     return hduls
 
 def write(hduls, directory, format_):
