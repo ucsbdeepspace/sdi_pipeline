@@ -8,7 +8,7 @@ import unittest
 import click
 from click.testing import CliRunner
 from astropy.io import fits
-import sdi
+import tripp
 import glob
 
 class TestCollate(unittest.TestCase):
@@ -17,8 +17,8 @@ class TestCollate(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.read = [s for s in sdi.read(cls.path)]
-        cls.output = list(sdi.collate(cls.read))
+        cls.read = [s for s in tripp.read(cls.path)]
+        cls.output = list(tripp.collate(cls.read))
         cls.paths = glob.glob("fixtures/comparativeData/collateData/*")
         cls.true_output = [fits.open(path) for path in cls.paths]
 
@@ -42,7 +42,7 @@ class TestCollate(unittest.TestCase):
 
     def test_click(self):
         runner = CliRunner()
-        result = runner.invoke(sdi._collate_cmd)
+        result = runner.invoke(tripp._collate_cmd)
         assert result.exit_code == 0
 
 if __name__ == "__main__":

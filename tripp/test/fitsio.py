@@ -7,7 +7,7 @@ import os
 import unittest
 from click.testing import CliRunner
 from astropy.io import fits
-import sdi
+import tripp
 import glob
 import tempfile
 import getpass
@@ -19,8 +19,8 @@ class TestRead(unittest.TestCase):
     nopath = os.path.join(os.path.dirname(__file__), "fixtures/gobbledygook")
 
     def setUp(self):
-        self.output = [s for s in sdi.read(TestRead.path)]
-        self.noutput = [s for s in sdi.read(TestRead.nopath)]
+        self.output = [s for s in tripp.read(TestRead.path)]
+        self.noutput = [s for s in tripp.read(TestRead.nopath)]
 
     def tearDown(self):
         for hdul in self.output:
@@ -36,7 +36,7 @@ class TestRead(unittest.TestCase):
 
     def test_click(self):
         runner = CliRunner()
-        result = runner.invoke(sdi._read_cmd, ['-d', 'filePath'])
+        result = runner.invoke(tripp._read_cmd, ['-d', 'filePath'])
         assert result.exit_code == 0
 
 class TestWrite(unittest.TestCase):
@@ -48,8 +48,8 @@ class TestWrite(unittest.TestCase):
         self.tmpdir = tempfile.TemporaryDirectory()
         self.dirName = os.path.join(self.tmpdir.name, self.testDir)
         os.mkdir(self.dirName)
-        self.h = sdi.read(os.path.join(os.path.dirname(__file__), "fixtures/science"))
-        self.output = sdi.write(self.h, os.path.join(os.path.dirname(__file__), self.dirName), "{number}.fits")
+        self.h = tripp.read(os.path.join(os.path.dirname(__file__), "fixtures/science"))
+        self.output = tripp.write(self.h, os.path.join(os.path.dirname(__file__), self.dirName), "{number}.fits")
         self.paths = glob.glob("{}/*.fits*".format(os.path.join(os.path.dirname(__file__), self.dirName)))
 
     @classmethod
@@ -67,7 +67,7 @@ class TestWrite(unittest.TestCase):
 
     def test_click(self):
         runner = CliRunner()
-        result = runner.invoke(sdi._write_cmd, ['-d', 'filePath', '-f', 'format'])
+        result = runner.invoke(tripp._write_cmd, ['-d', 'filePath', '-f', 'format'])
         assert result.exit_code == 0
 
 if __name__ == "__main__":
