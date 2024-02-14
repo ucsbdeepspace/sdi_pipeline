@@ -98,6 +98,11 @@ def align(hduls, read_ext="SCI", write_ext="ALGN", ref=None):
     """
 
     faulthandler.enable()
+
+    if (len(dim(hduls)) == 1):     
+        number_of_nights = 1  
+        images_per_night = [dim(hduls)[0]]
+
     if (len(dim(hduls)) == 2):
         number_of_nights = dim(hduls)[0]
         images_per_night = []
@@ -174,17 +179,21 @@ def align(hduls, read_ext="SCI", write_ext="ALGN", ref=None):
             idx = hduls[i].index_of("PRIMARY")
         hduls[i][idx].header['EXTNAME'] = (write_ext)
         hduls[i][idx].header = reference.header  
-    print('\n' + 'Time for aligning {} images was {} seconds meaning {} seconds per image'.format(len(hduls), datetime.datetime.now()-begin, (datetime.datetime.now()-begin)/len(hduls)))
+    # print('\n' + 'Time for aligning {} images was {} seconds meaning {} seconds per image'.format(len(hduls), datetime.datetime.now()-begin, (datetime.datetime.now()-begin)/len(hduls)))
     shm_hdul_data.close()
     shm_snr.close()
     shm_snr.unlink()
     shm_hdul_data.unlink()
     hduls_separated = []
     starting_index = 0
-    for i in images_per_night:
-        hduls_separated.append(hduls[starting_index:starting_index+i])
-        starting_index += i
-    return hduls_separated
+
+    if number_of_nights > 1:
+        for i in images_per_night:
+            hduls_separated.append(hduls[starting_index:starting_index+i])
+            starting_index += i
+        return hduls_separated
+    else:
+        return hduls
 
 
 @cli.cli.command("align")

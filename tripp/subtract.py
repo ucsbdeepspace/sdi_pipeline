@@ -12,7 +12,7 @@ import time
 import numpy as np
 import sys
 
-def subtract(hduls, name="ALGN", method = "sfft", bpm = "bpm", kerpolyorder = 1, bgpolyorder = 1):
+def subtract(hduls, name="ALGN", method = "ois", bpm = "bpm", kerpolyorder = 1, bgpolyorder = 1):
     """
     Returns differences of a set of images from a template image
     Arguments:
