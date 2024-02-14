@@ -24,7 +24,7 @@ setup(
     py_modules=["tripp"],
     # packages=find_packages(include=["openfits"]),
     include_package_data=True,
-    install_requires=["click", "astropy", "photutils", "ois", "astroalign", "astroquery", "scikit-learn"],
+    install_requires=["click", "astropy", "matplotlib", "regions", "photutils", "ois", "astroalign", "astroquery", "scikit-learn"],
     entry_points="""
         [console_scripts]
         tripp=tripp._cli:cli

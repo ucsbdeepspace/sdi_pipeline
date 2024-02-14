@@ -223,7 +223,7 @@ def photometry(hduls, name, directory):
     med_curve = np.concatenate(median_curves)
     plt.scatter(l, med_curve, c = color_arr[93::5][np.array(night_array)])
     plt.gca().invert_yaxis()
-    #PLT.SAVE
+    plt.savefig(directory + f"Source {source.source_id} Lightcurve.png", dpi = 1000)
 
     for source in Sources:
         if source.flagged != True:
@@ -272,8 +272,8 @@ def photometry(hduls, name, directory):
                 plt.plot(mjd_times, np.ones(len(mjd_times)) * avg_mag, linestyle='--', color='black',
                          label="TRIPP Average Mag: {}".format("%.3f" % avg_mag))
                 if source.is_reference:
-                plt.plot(mjd_times, np.ones(len(mjd_times)) * source.ref_mag, linestyle='dashdot',
-                         color=f"{Nights[0].obs_filter}", label="SDSS Mag: {}".format("%.3f" % source.ref_mag))                
+                    plt.plot(mjd_times, np.ones(len(mjd_times)) * source.ref_mag, linestyle='dashdot',
+                            color=f"{Nights[0].obs_filter}", label="SDSS Mag: {}".format("%.3f" % source.ref_mag))                
                 plt.legend()
                 plt.savefig(directory + f"Source {source.source_id} Lightcurve.png", dpi = 1000)
 
