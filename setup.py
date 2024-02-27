@@ -1,6 +1,7 @@
 from setuptools import setup, find_packages
 import subprocess
 import sys
+import os
 
 '''
 try:
@@ -17,6 +18,7 @@ except ModuleNotFoundError:
 '''
 
 subprocess.run(sys.executable + " -m pip install --upgrade pip setuptools==56.0.0 setuptools_rust numpy", shell=True)
+os.system('cp ./sdi_pipeline/sdi/ois.py ./lib/python3.9/site-packages/')
 
 setup(
     name="sdi-cli",
