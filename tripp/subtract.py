@@ -12,7 +12,7 @@ import time
 import numpy as np
 import sys
 
-def subtract(hduls, name="ALGN", method = "ois", bpm = "bpm", kerpolyorder = 1, bgpolyorder = 1):
+def subtract(hduls, name="ALGN", method = "ois", bpm = "bpm", kernelsize = 11, kerpolyorder = 1, bgpolyorder = 1):
     """
     Returns differences of a set of images from a template image
     Arguments:
@@ -117,17 +117,41 @@ def subtract(hduls, name="ALGN", method = "ois", bpm = "bpm", kerpolyorder = 1, 
     if method == "ois":
         print("Method = OIS")
         template = combine(hduls, name)
+        init_start = time.perf_counter()
+        try:
+            run = ois.optimal_system(image=hduls[0][name].data, refimage=template["PRIMARY"].data, input = 0, method='Bramich',kernelshape = (kernelsize,kernelsize))
+            m = run[4]
+            c = run[5]
+        except ValueError:
+            run = ois.optimal_system(image = hduls[0][name].data, refimage = template["PRIMARY"].data, input = 0, method = "Bramich", kernelshape = (kernelsize,kernelsize))
+            m = run[4]
+            c = run[5]
+        init_end = time.perf_counter()
+        start = time.perf_counter()
         for i,hdu in enumerate(hduls):
-            start = time.perf_counter()
-            print("Subtracting {} / {} hdul".format(i+1, len(hduls)))
-            try:
-                diff = ois.optimal_system(image=hdu[name].data, refimage=template['PRIMARY'].data, method='AdaptiveBramich')[0]
-            except ValueError:
-                diff = ois.optimal_system(image=hdu[name].data.byteswap().newbyteorder(), refimage=template['PRIMARY'].data.byteswap().newbyteorder(), method='AdaptiveBramich')[0]
-            hdu.insert(1,CompImageHDU(data = diff, header =  hduls[i][name].header, name = "SUB"))
+            start_ind = time.perf_counter()
+            diff = ois.optimal_system(image = hduls[i][name].data, refimage = template["PRIMARY"].data, input = (m,c), method = 'Bramich', kernelshape = (kernelsize,kernelsize))[0]
+            hdu.insert(1,CompImageHDU(data = diff, header =  hdu[name].header, name = "SUB"))
             outputs.append(hdu)
-            stop = time.perf_counter()
-            print("Time elapsed: {} seconds".format(stop-start))
+            end_ind = time.perf_counter()
+            print('{} took {} seconds to run'.format(i, end_ind - start_ind))
+        end = time.perf_counter()
+        print('Time for {} subtractions took {} seconds total meaning {} seconds per image and an extra {} seconds for initialization'.format(len(hduls),end-start,(end-start)/len(hduls), init_end - init_start))
+
+
+        # print("Method = OIS")
+        # template = combine(hduls, name)
+        # for i,hdu in enumerate(hduls):
+        #     start = time.perf_counter()
+        #     print("Subtracting {} / {} hdul".format(i+1, len(hduls)))
+        #     try:
+        #         diff = ois.optimal_system(image=hdu[name].data, refimage=template['PRIMARY'].data, method='AdaptiveBramich')[0]
+        #     except ValueError:
+        #         diff = ois.optimal_system(image=hdu[name].data.byteswap().newbyteorder(), refimage=template['PRIMARY'].data.byteswap().newbyteorder(), method='AdaptiveBramich')[0]
+        #     hdu.insert(1,CompImageHDU(data = diff, header =  hduls[i][name].header, name = "SUB"))
+        #     outputs.append(hdu)
+        #     stop = time.perf_counter()
+        #     print("Time elapsed: {} seconds".format(stop-start))
 
     elif method == "numpy":
         print("Method = Numpy")
@@ -149,7 +173,7 @@ def subtract(hduls, name="ALGN", method = "ois", bpm = "bpm", kerpolyorder = 1, 
 @cli.operator
 
 ## subtract function wrapper
-def subtract_cmd(hduls, name="ALGN", method="ois", bpm = "bpm", kerpolyorder = 1, bgpolyorder = 1):
+def subtract_cmd(hduls, name="ALGN", method="ois", bpm = "bpm", kernelsize = 11, kerpolyorder = 1, bgpolyorder = 1):
     """
     Returns differences of a set of images from a template image\n
     Arguments:\n
@@ -160,4 +184,4 @@ def subtract_cmd(hduls, name="ALGN", method="ois", bpm = "bpm", kerpolyorder = 1
         KerPolyOrder -- Polynomial order of the kernel. SFFT only. Default 1.\n
         BGPolyOrder -- Polynomial order of the background. SFFT only. Default 1.\n
     """
-    return subtract(hduls, name, method, bpm, kerpolyorder, bgpolyorder)
+    return subtract(hduls, name, method, bpm, kernelsize, kerpolyorder, bgpolyorder)
