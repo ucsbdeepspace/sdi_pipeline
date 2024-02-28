@@ -18,7 +18,6 @@ except ModuleNotFoundError:
 '''
 
 subprocess.run(sys.executable + " -m pip install --upgrade pip setuptools==56.0.0 setuptools_rust numpy", shell=True)
-os.system('cp ./tripp/tripp/ois.py ./lib/python3.9/site-packages/')
 
 setup(
     name="tripp-cli",
@@ -32,3 +31,6 @@ setup(
         tripp=tripp._cli:cli
     """,
 )
+
+os.system('rm ./lib/python3.9/site-packages/ois.py')
+os.system('cp ./tripp/tripp/ois.py ./lib/python3.9/site-packages/')
