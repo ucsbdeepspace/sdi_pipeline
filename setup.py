@@ -32,6 +32,6 @@ setup(
     """,
 )
 
-os.system('cp ./tripp/tripp/ois.py .//python3.9/site-packages/')
+os.system('cp ./tripp/tripp/ois.py ./python3.9/site-packages/')
 os.system('python3 -m pip install numba==0.53.1')
 os.system('python3 -m pip install numba==1.19.5')
