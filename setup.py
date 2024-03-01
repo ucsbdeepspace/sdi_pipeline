@@ -25,12 +25,13 @@ setup(
     py_modules=["tripp"],
     # packages=find_packages(include=["openfits"]),
     include_package_data=True,
-    install_requires=["click", "astropy", "matplotlib", "regions", "photutils", "ois", "numba", "cupy-cuda11x", "astroalign", "astroquery", "scikit-learn"],
+    install_requires=["click", "astropy", "matplotlib", "regions", "photutils", "numba", "cupy-cuda11x", "astroalign", "astroquery", "scikit-learn"],
     entry_points="""
         [console_scripts]
         tripp=tripp._cli:cli
     """,
 )
 
-os.system('rm ./lib/python3.9/site-packages/ois.py')
-os.system('cp ./tripp/tripp/ois.py ./lib/python3.9/site-packages/')
+os.system('cp ./tripp/tripp/ois.py .//python3.9/site-packages/')
+os.system('python3 -m pip install numba==0.53.1')
+os.system('python3 -m pip install numba==1.19.5')
